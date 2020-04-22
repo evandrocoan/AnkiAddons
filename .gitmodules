@@ -1,0 +1,3 @@
+[submodule "awesometts-anki-addon"]
+	path = awesometts-anki-addon
+	url = https://github.com/evandroforks/awesometts-anki-addon
