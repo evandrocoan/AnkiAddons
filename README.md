@@ -2,7 +2,8 @@
 
 All Anki Addons I have installed and use (but not created by myself).
 
-To install it, just clone this repository directly on your Anki base directory.
+To install it, just clone this repository directly on your Anki base directory:
+1. **`git clone --recursive https://github.com/evandrocoan/AnkiAddons addons21`**
 1. https://docs.ankiweb.net/#/files?id=file-locations
 
 
