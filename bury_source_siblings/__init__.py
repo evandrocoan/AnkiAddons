@@ -46,28 +46,43 @@ def _getSource(field, note):
         pass
 
 
-def getSource(card):
-    note = card.note()
-    source = _getSource("Source", note) or _getSource("source", note)
+def getSource(note):
+    if note is None: return None
+    def tryGet(field):
+        if field in note:
+            return note[field]
+        return None
+    source = tryGet("Source") or tryGet("source")
     return stripHTML(source) if source else None
 
-
 def bury_related_sources(card, toBury, scheduler):
-    firstsource = getSource(card)
+    firstsource = getSource(card.note())
+    burySet = set()
 
-    if scheduler._burySiblingsOnAnswer and firstsource:
-        for cid, queue in scheduler.col.db.execute(
-            f"""
-select id, queue from cards where nid!=? and id!=?
-and (queue={QUEUE_TYPE_NEW} or (queue={QUEUE_TYPE_REV} and due<=?))""",
-            card.nid,
-            card.id,
-            scheduler.today,
-        ):
-            source = getSource(scheduler.col.getCard(cid))
+    if scheduler._burySiblingsOnAnswer and firstsource and len(firstsource) > 0:
+        if not hasattr( scheduler, 'cardSourceIds'):
+            scheduler.cardSourceIds = {}
+            for nid, flds in scheduler.col.db.execute(f"select id, flds from notes"):
+                note = scheduler.col.getNote(nid)
+                source = getSource(note)
+                if source and len(source) > 0:
+                    card_ids = note.card_ids()
+                    if source in scheduler.cardSourceIds:
+                        scheduler.cardSourceIds[source].append((card_ids, flds))
+                    else:
+                        scheduler.cardSourceIds[source] = [(card_ids, flds)]
 
-            if source and source == firstsource and len(firstsource) > 0:
-                toBury.append(cid)
+        if firstsource in scheduler.cardSourceIds:
+            for card_ids, flds in scheduler.cardSourceIds[firstsource]:
+                for cid in card_ids:
+                    if cid != card.id:
+                        # print(f"Burring source card '{cid}, {firstsource}' = '{flds}'")
+                        burySet.add(cid)
+
+    toBurySet = set(toBury)
+    for cid in burySet:
+        if cid not in toBurySet:
+            toBury.append(cid)
 
     # print(f'Burying {toBury}...')
 
