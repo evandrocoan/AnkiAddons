@@ -1,0 +1,10 @@
+{
+	"showInterval": true,
+    "time": 5000,
+    "x_mode": "left",
+    "x_pos": 150,
+    "y_mode": "bottom",
+    "y_pos": -100,
+	"width": 0,
+	"height": 0
+}
