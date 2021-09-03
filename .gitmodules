@@ -1,3 +1,6 @@
 [submodule "awesometts-anki-addon"]
 	path = awesometts-anki-addon
 	url = https://github.com/evandroforks/awesometts-anki-addon
+[submodule "speed-focus-mode"]
+	path = speed-focus-mode
+	url = https://github.com/evandroforks/speed-focus-mode
