@@ -15,12 +15,13 @@ for nid, in mw.col.db.execute(f"select id from notes"):
     note_type = note.note_type()
 
     if note_type["name"] == "Japanese Kanji":
-        index_field = note[field_to_index]
         cards = note.cards()
         first_card = cards[0]
         deck_id = first_card.did
 
         if deck_id == source_deck_did:
+            index_field = note[field_to_index]
+
             if index_field not in source_deck:
                 print(f'Adding source deck {index_field}')
                 source_deck[index_field] = note
