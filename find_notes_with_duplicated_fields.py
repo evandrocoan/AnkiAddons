@@ -1,4 +1,7 @@
 
+for name, did in mw.col.db.execute(f"select name, id from decks"):
+    print(f"Deck name {name}, did {did}.")
+
 source_deck_did = 1624247053854  # All in One Kanji
 
 source_field = "Kanji"
