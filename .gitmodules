@@ -4,3 +4,6 @@
 [submodule "speed-focus-mode"]
 	path = speed-focus-mode
 	url = https://github.com/evandroforks/speed-focus-mode
+[submodule "CrowdAnki"]
+	path = CrowdAnki
+	url = https://github.com/evandroforks/CrowdAnki
