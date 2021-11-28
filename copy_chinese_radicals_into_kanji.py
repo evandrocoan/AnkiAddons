@@ -27,10 +27,10 @@ for nid, in mw.col.db.execute(f"select id from notes"):
         kanji_notes[kanji_field_text] = note
 
 fields_to_fill = [
-    ("Pinyin", "RadicalPinyin"),
+    # ("Pinyin", "RadicalPinyin"),
     ("English", "RadicalEnglish"),
     ("EnglishAudio", "RadicalEnglishAudio"),
-    ("ChineseSimplifiedAudio", "RadicalSound"),
+    # ("ChineseSimplifiedAudio", "RadicalSound"),
 ]
 
 for kanji_field_text, kanji_note in kanji_notes.items():
@@ -41,12 +41,12 @@ for kanji_field_text, kanji_note in kanji_notes.items():
             radical_note = radical_notes[radical_field_text]
             source_field_text = radical_note[source_field]
 
-            target_field_text = getField(target_field, kanji_note)
-            if target_field_text:
-                print(f"Skipping kanji '{kanji_field_text}[{target_field}]' because it is already filled!")
-            else:
-                print(f"Setting kanji '{kanji_field_text}[{target_field}]' with '{source_field}={source_field_text}'")
-                kanji_note[target_field] = source_field_text
-                kanji_note.flush()
+            # target_field_text = getField(target_field, kanji_note)
+            # if target_field_text:
+            #     print(f"Skipping kanji '{kanji_field_text}[{target_field}]' because it is already filled!")
+            # else:
+            print(f"Setting kanji '{kanji_field_text}[{target_field}]' with '{source_field}={source_field_text}'")
+            kanji_note[target_field] = source_field_text
+            kanji_note.flush()
 
 print("Successfully completed...")
