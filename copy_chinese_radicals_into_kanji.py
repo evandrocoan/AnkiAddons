@@ -28,17 +28,30 @@ for nid, in mw.col.db.execute(f"select id from notes"):
 
 fields_to_fill = [
     # ("Pinyin", "RadicalPinyin"),
-    ("English", "RadicalEnglish"),
-    ("EnglishAudio", "RadicalEnglishAudio"),
-    # ("ChineseSimplifiedAudio", "RadicalSound"),
+    ("OnyomiEnglish", "KunyomiEnglish", "RadicalEnglish"),
+    ("OnyomiEnglishAudio", "KunyomiEnglishAudio", "RadicalEnglishAudio"),
+    # ("ChineseAudio", "RadicalSound"),
 ]
 
 for kanji_field_text, kanji_note in kanji_notes.items():
-    for source_field, target_field in fields_to_fill:
+    for fields in fields_to_fill:
+        if len(fields) == 2:
+            source_field1, target_field = fields
+            source_field2 = None
+        else:
+            source_field1, source_field2, target_field = fields
+
         radical_field_text = getField(g_radical_field, kanji_note)
 
         if radical_field_text:
             radical_note = radical_notes[radical_field_text]
+
+            if getField(source_field1, radical_note):
+                source_field = source_field1
+            else:
+                assert source_field2
+                source_field = source_field2
+
             source_field_text = radical_note[source_field]
 
             # target_field_text = getField(target_field, kanji_note)
