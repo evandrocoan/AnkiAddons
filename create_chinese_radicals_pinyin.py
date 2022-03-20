@@ -1,3 +1,4 @@
+import datetime; print(datetime.datetime.now())
 
 fields = {
     "水": "shuǐ",

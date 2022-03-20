@@ -1,3 +1,4 @@
+import datetime; print(datetime.datetime.now())
 
 for name, did in mw.col.db.execute(f"select name, id from decks"):
     print(f"Deck name {name}, did {did}.")

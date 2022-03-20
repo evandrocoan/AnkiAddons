@@ -1,3 +1,4 @@
+import datetime; print(datetime.datetime.now())
 
 target_field = 'Front'
 

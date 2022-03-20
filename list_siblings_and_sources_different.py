@@ -1,3 +1,4 @@
+import datetime; print(datetime.datetime.now())
 
 def getField(field, note):
     fieldText = note[field]

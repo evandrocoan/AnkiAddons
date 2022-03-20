@@ -1,3 +1,4 @@
+import datetime; print(datetime.datetime.now())
 
 g_kanji_field = "Kanji"
 g_radical_field = "Radical"

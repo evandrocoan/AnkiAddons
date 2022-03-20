@@ -1,3 +1,4 @@
+import datetime; print(datetime.datetime.now())
 
 import re
 field_fixer_regex = re.compile(r'<\s*br\s*\/?\s*>.*')
