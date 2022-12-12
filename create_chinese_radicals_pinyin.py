@@ -35,7 +35,7 @@ fields = {
     "犬": "quǎn",
     "一": "yī",
     "山": "shān",
-    "攵": "攵",
+    "攵": "sui1",
     "石": "shí",
     "尸": "shī",
     "玉": "yù",
@@ -221,7 +221,7 @@ fields = {
 mainField = "Radical"
 targetField = "Pinyin"
 
-def getField(field, note):
+def stripField(field, note):
     fieldText = note[field]
     from anki.utils import stripHTML
     return stripHTML(fieldText) if fieldText else None
@@ -230,9 +230,9 @@ for nid, in mw.col.db.execute(f"select id from notes"):
     note = mw.col.getNote(nid)
 
     if targetField in note and mainField in note:
-        mainFieldText = getField(mainField, note)
+        mainFieldText = stripField(mainField, note)
         if mainFieldText in fields:
-            targetFieldText = getField(targetField, note)
+            targetFieldText = stripField(targetField, note)
             if targetFieldText is not None:
                 if len(targetFieldText):
                     print(f"Warning: Replacing nid {nid}, mainField {mainField} === {targetFieldText}")
