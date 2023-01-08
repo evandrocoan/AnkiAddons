@@ -7,3 +7,6 @@
 [submodule "CrowdAnki"]
 	path = CrowdAnki
 	url = https://github.com/evandroforks/CrowdAnki
+[submodule "TemplatesImportExport"]
+	path = TemplatesImportExport
+	url = https://github.com/evandroforks/Templates-Import-Export-for-Anki
