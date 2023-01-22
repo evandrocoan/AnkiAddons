@@ -66,25 +66,25 @@ def enable_javascript_playback(web: AnkiWebView) -> None:
 def on_ankimediaqueue(web: AnkiWebView, location: str):
     # print(f'location {location}, web {web}.')
 
-    if location == 'autoplay':
+    if location in ('autoplay-preview', 'autoplay-show', 'autoplay-render'):
         web.eval("ankimedia.autoplay = false;")
 
-    elif location == 'toggle':
+    elif location in ('toggle-pause',):
         web.eval("ankimedia.togglePause();")
 
-    elif location == 'reset':
+    elif location in ('reset-preview', 'reset-redraw', 'reset-next', 'reset-sides'):
         web.eval("ankimedia._reset();")
 
-    elif location == 'reset_skip':
+    elif location in ('reset_skip-render',):
         web.eval("ankimedia._reset({skip_front_reset: true});")
 
-    elif location == 'skip':
+    elif location in ('skip-preview', 'skip-replay', 'skip-render_answer', 'skip-render_end', 'skip-sides'):
         web.eval("ankimedia.skip_front = true;")
 
-    elif location == 'replay':
+    elif location in ('replay-replay', 'replay-audio'):
         web.eval("ankimedia.replay();")
 
-    elif location == 'enable':
+    elif location in ('enable-clayout', 'enable-main', 'enable-previewer'):
         enable_javascript_playback(web)
 
     else:
