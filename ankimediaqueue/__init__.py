@@ -36,7 +36,7 @@ import aqt
 
 from typing import Any
 
-from aqt import gui_hooks
+from aqt import gui_hooks, CallingFunction
 from aqt.webview import AnkiWebView
 from aqt.webview import WebContent
 
@@ -63,32 +63,29 @@ def enable_javascript_playback(web: AnkiWebView) -> None:
         )
 
 
-def on_ankimediaqueue(web: AnkiWebView, location: str):
-    # print(f'location {location}, web {web}.')
+def on_ankimediaqueue(web_content: AnkiWebView, location: str):
+    print(f'location old {location}, web {web_content}.')
 
     if location in ('autoplay-preview', 'autoplay-show', 'autoplay-render'):
-        web.eval("ankimedia.autoplay = false;")
+        web_content.eval("ankimedia.autoplay = false;")
 
     elif location in ('toggle-pause',):
-        web.eval("ankimedia.togglePause();")
+        web_content.eval("ankimedia.togglePause();")
 
     elif location in ('reset-preview', 'reset-redraw', 'reset-next', 'reset-sides'):
-        web.eval("ankimedia._reset();")
+        web_content.eval("ankimedia._reset();")
 
     elif location in ('reset_skip-render',):
-        web.eval("ankimedia._reset({skip_front_reset: true});")
+        web_content.eval("ankimedia._reset({skip_front_reset: true});")
 
     elif location in ('skip-preview', 'skip-replay', 'skip-render_answer', 'skip-render_end', 'skip-sides'):
-        web.eval("ankimedia.skip_front = true;")
+        web_content.eval("ankimedia.skip_front = true;")
 
     elif location in ('replay-replay', 'replay-audio'):
-        web.eval("ankimedia.replay();")
-
-    elif location in ('enable-clayout', 'enable-main', 'enable-previewer'):
-        enable_javascript_playback(web)
+        web_content.eval("ankimedia.replay();")
 
     else:
-        print(f'ankimediaqueue, invalid location {location}, web {web}.')
+        print(f'ankimediaqueue, invalid location {location}, web {web_content}.')
 
 
 def on_webview_will_set_content(web_content: WebContent, context: Any):
@@ -96,5 +93,14 @@ def on_webview_will_set_content(web_content: WebContent, context: Any):
     web_content.js.insert(0, f"/_addons/{addon_package}/web/ankimedia.js")
 
 
+def on_webview_did_init(web_content: WebContent, location: CallingFunction):
+    # print(f'location init {location}, web {web_content}.')
+
+    if location in (CallingFunction.CLAYOUT, CallingFunction.PREVIWER, CallingFunction.MAIN_WINDOW):
+        enable_javascript_playback(web_content)
+    else:
+        print(f'ankimediaqueue, invalid location {location}, web {web_content}.')
+
 gui_hooks.will_show_web.append(on_ankimediaqueue)
+gui_hooks.webview_did_init.append(on_webview_did_init)
 gui_hooks.webview_will_set_content.append(on_webview_will_set_content)
