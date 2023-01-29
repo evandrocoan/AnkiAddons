@@ -184,8 +184,8 @@ However, some arrangements may be simple enough for anyone to use.
  * You can call this function as `setup({delay: 0.3, wait: false})`.
  *
  * @param {number} delay   - how many seconds to wait before playing the next audio (default 0.3).
- * @param {boolean} wait   - if true (default), wait for the question audio to play
- *        when the answer was showed before it had finished playing.
+ * @param {boolean} wait   - if true, wait for the question audio to play when the answer was
+ *                           showed before it had finished playing (default false).
  * @param {function} extra - a function(media) to be run on each media of the page.
  * @param {array} medias   - an array of initial values to be passed to setAnkiMedia() calls.
  * @param {boolean} auto   - if true (default), auto-play the media elements.
