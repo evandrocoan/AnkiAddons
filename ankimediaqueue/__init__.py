@@ -65,31 +65,6 @@ def enable_javascript_playback(web: AnkiWebView) -> None:
         )
 
 
-def on_ankimediaqueue(web_content: AnkiWebView, location: str):
-    print(f'location old {location}, web {web_content}.')
-
-    if location in ('autoplay-preview', 'autoplay-show', 'autoplay-render'):
-        web_content.eval("ankimedia.autoplay = false;")
-
-    elif location in ('toggle-pause',):
-        web_content.eval("ankimedia.togglePause();")
-
-    elif location in ('reset-preview', 'reset-redraw', 'reset-next', 'reset-sides'):
-        web_content.eval("ankimedia._reset();")
-
-    elif location in ('reset_skip-render',):
-        web_content.eval("ankimedia._reset({skip_front_reset: true});")
-
-    elif location in ('skip-preview', 'skip-replay', 'skip-render_answer', 'skip-render_end', 'skip-sides'):
-        web_content.eval("ankimedia.skip_front = true;")
-
-    elif location in ('replay-replay', 'replay-audio'):
-        web_content.eval("ankimedia.replay();")
-
-    else:
-        print(f'ankimediaqueue, invalid location {location}, web {web_content}.')
-
-
 def on_webview_will_set_content(web_content: WebContent, context: Any):
     addon_package = mw.addonManager.addonFromModule(__name__)
     web_content.js.insert(0, f"/_addons/{addon_package}/web/ankimedia.js")
@@ -133,9 +108,17 @@ def on_audio_will_replay(web_content: WebContent, card: Card, state: str):
     web_content.eval("ankimedia.replay();")
 
 
-gui_hooks.will_show_web.append(on_ankimediaqueue)
+def on_show_both_sides_will_toggle(web_content: WebContent,  card: Card, state: str, toggle: bool):
+    print(f'on_show_both_sides_will_toggle state {state}, toggle {toggle}, web {web_content}.')
+    web_content.eval("ankimedia._reset();")
+
+    if state == "question" and toggle:
+        web_content.eval("ankimedia.skip_front = true;")
+
+
 gui_hooks.webview_did_init.append(on_webview_did_init)
 gui_hooks.card_will_show_state.append(on_card_will_show_state)
 gui_hooks.audio_will_toggle.append(on_audio_will_toggle)
 gui_hooks.audio_will_replay.append(on_audio_will_replay)
+gui_hooks.show_both_sides_will_toggle.append(on_show_both_sides_will_toggle)
 gui_hooks.webview_will_set_content.append(on_webview_will_set_content)
