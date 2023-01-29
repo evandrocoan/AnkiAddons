@@ -119,7 +119,13 @@ def on_card_will_show_state(text: str, card: Card, kind: str, web_content: WebCo
     return text
 
 
+def on_audio_will_toggle(web_content: WebContent):
+    print(f'on_audio_will_toggle web {web_content}.')
+    web_content.eval("ankimedia.togglePause();")
+
+
 gui_hooks.will_show_web.append(on_ankimediaqueue)
 gui_hooks.webview_did_init.append(on_webview_did_init)
 gui_hooks.card_will_show_state.append(on_card_will_show_state)
+gui_hooks.audio_will_toggle.append(on_audio_will_toggle)
 gui_hooks.webview_will_set_content.append(on_webview_will_set_content)
