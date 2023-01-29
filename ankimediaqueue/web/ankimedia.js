@@ -84,6 +84,9 @@ class AnkiMediaQueue {
     _reset(parameters = {}) {
         // this._debug(`_reset parameters '${JSON.stringify(parameters)}'`);
         let { skip_front_reset = false } = parameters;
+        if (skip_front_reset && this.wait_question) {
+            return;
+        }
         // Pause all medias before resetting the state of the next card
         let allmedias = new Map([
             ...this.medias,
@@ -135,7 +138,7 @@ class AnkiMediaQueue {
         this._is_autoseek_callback = () => { };
         this.is_setup = false;
         this.where = "front";
-        this.wait_question = true;
+        this.wait_question = false;
         this._answer_element = null;
         this.has_previewed = false;
         if (!skip_front_reset) {
@@ -499,8 +502,8 @@ class AnkiMediaQueue {
      * You can call this function as `setup({delay: 0.3, wait: false})`.
      *
      * @param {number} delay   - how many seconds to wait before playing the next audio (default 0.3).
-     * @param {boolean} wait   - if true (default), wait for the question audio to play
-     *        when the answer was showed before it had finished playing.
+     * @param {boolean} wait   - if true, wait for the question audio to play when the answer was
+     *                           showed before it had finished playing (default false).
      * @param {function} extra - a function(media) to be run on each media of the page.
      * @param {array} medias   - an array of initial values to be passed to setAnkiMedia() calls.
      * @param {boolean} auto   - if true (default), auto-play the media elements.
@@ -620,12 +623,7 @@ class AnkiMediaQueue {
             let clone;
             if (this.medias.has(media.id)) {
                 clone = this.medias.get(media.id);
-                if (this.wait_question) {
-                    media.parentNode.replaceChild(clone, media);
-                }
-                else if (!clone.paused) {
-                    this.is_playing = false;
-                }
+                media.parentNode.replaceChild(clone, media);
             }
             else {
                 clone = media.cloneNode(true);
@@ -668,6 +666,7 @@ class AnkiMediaQueue {
                 this._playing_media = target;
                 this._was_next_play_paused = false;
                 setAnkiMedia((media) => {
+                    // console.log(`${media.id != target.id}, media.id ${media.id}, target.id ${target.id}...`);
                     if (media.id != target.id) {
                         media.pause();
                     }
