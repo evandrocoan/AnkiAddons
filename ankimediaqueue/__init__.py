@@ -124,8 +124,18 @@ def on_audio_will_toggle(web_content: WebContent):
     web_content.eval("ankimedia.togglePause();")
 
 
+def on_audio_will_replay(web_content: WebContent, card: Card, state: str):
+    print(f'on_audio_will_replay state {state}, replay_question_audio_on_answer_side {card.replay_question_audio_on_answer_side()}, web {web_content}.')
+
+    if state == "answer" and not card.replay_question_audio_on_answer_side():
+        web_content.eval("ankimedia.skip_front = true;")
+
+    web_content.eval("ankimedia.replay();")
+
+
 gui_hooks.will_show_web.append(on_ankimediaqueue)
 gui_hooks.webview_did_init.append(on_webview_did_init)
 gui_hooks.card_will_show_state.append(on_card_will_show_state)
 gui_hooks.audio_will_toggle.append(on_audio_will_toggle)
+gui_hooks.audio_will_replay.append(on_audio_will_replay)
 gui_hooks.webview_will_set_content.append(on_webview_will_set_content)
