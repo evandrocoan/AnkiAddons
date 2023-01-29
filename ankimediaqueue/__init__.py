@@ -48,6 +48,8 @@ from aqt.qt import (
 from aqt import mw
 mw.addonManager.setWebExports(__name__, r"web/ankimedia.js")
 
+from anki.cards import Card
+
 
 def enable_javascript_playback(web: AnkiWebView) -> None:
     page_settings = web._page.settings()
@@ -94,13 +96,30 @@ def on_webview_will_set_content(web_content: WebContent, context: Any):
 
 
 def on_webview_did_init(web_content: WebContent, location: CallingFunction):
-    # print(f'location init {location}, web {web_content}.')
+    # print(f'on_webview_did_init {location}, web {web_content}.')
 
     if location in (CallingFunction.CLAYOUT, CallingFunction.PREVIWER, CallingFunction.MAIN_WINDOW):
         enable_javascript_playback(web_content)
     else:
         print(f'ankimediaqueue, invalid location {location}, web {web_content}.')
 
+
+def on_card_will_show_state(text: str, card: Card, kind: str, web_content: WebContent, skip_front: bool, has_autoplayed: bool):
+    print(f'on_card_will_show_state skip_front {skip_front}, autoplay {card.autoplay()}, has_autoplayed {has_autoplayed}, web {web_content}.')
+
+    if skip_front:
+        web_content.eval("ankimedia.skip_front = true;")
+
+    if not has_autoplayed:
+        web_content.eval(f"ankimedia._reset({{skip_front_reset: {'true' if skip_front else 'false'}}});")
+
+    if not card.autoplay():
+        web_content.eval("ankimedia.autoplay = false;")
+
+    return text
+
+
 gui_hooks.will_show_web.append(on_ankimediaqueue)
 gui_hooks.webview_did_init.append(on_webview_did_init)
+gui_hooks.card_will_show_state.append(on_card_will_show_state)
 gui_hooks.webview_will_set_content.append(on_webview_will_set_content)
