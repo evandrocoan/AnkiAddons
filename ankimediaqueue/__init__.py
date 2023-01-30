@@ -65,13 +65,13 @@ def enable_javascript_playback(web: AnkiWebView) -> None:
         )
 
 
-def on_webview_will_set_content(web_content: WebContent, context: Any):
+def webview_will_set_content(web_content: WebContent, context: Any):
     addon_package = mw.addonManager.addonFromModule(__name__)
     web_content.js.insert(0, f"/_addons/{addon_package}/web/ankimedia.js")
 
 
-def on_webview_did_init(web_content: WebContent, location: CallingFunction):
-    # print(f'on_webview_did_init {location}, web {web_content}.')
+def webview_did_init(web_content: WebContent, location: CallingFunction):
+    # print(f'webview_did_init {location}, web {web_content}.')
 
     if location in (CallingFunction.CLAYOUT, CallingFunction.PREVIWER, CallingFunction.MAIN_WINDOW):
         enable_javascript_playback(web_content)
@@ -79,8 +79,8 @@ def on_webview_did_init(web_content: WebContent, location: CallingFunction):
         print(f'ankimediaqueue, invalid location {location}, web {web_content}.')
 
 
-def on_card_will_show_state(text: str, card: Card, kind: str, web_content: WebContent, skip_front: bool, has_autoplayed: bool):
-    # print(f'on_card_will_show_state skip_front {skip_front}, autoplay {card.autoplay()}, has_autoplayed {has_autoplayed}, web {web_content}.')
+def card_will_show_state(text: str, card: Card, kind: str, web_content: WebContent, skip_front: bool, has_autoplayed: bool):
+    # print(f'card_will_show_state skip_front {skip_front}, autoplay {card.autoplay()}, has_autoplayed {has_autoplayed}, web {web_content}.')
 
     if skip_front:
         web_content.eval("ankimedia.skip_front = true;")
@@ -94,13 +94,13 @@ def on_card_will_show_state(text: str, card: Card, kind: str, web_content: WebCo
     return text
 
 
-def on_audio_will_toggle(web_content: WebContent):
-    # print(f'on_audio_will_toggle web {web_content}.')
+def audio_will_toggle(web_content: WebContent):
+    # print(f'audio_will_toggle web {web_content}.')
     web_content.eval("ankimedia.togglePause();")
 
 
-def on_audio_will_replay(web_content: WebContent, card: Card, state: str):
-    # print(f'on_audio_will_replay state {state}, replay_question_audio_on_answer_side {card.replay_question_audio_on_answer_side()}, web {web_content}.')
+def audio_will_replay(web_content: WebContent, card: Card, state: str):
+    # print(f'audio_will_replay state {state}, replay_question_audio_on_answer_side {card.replay_question_audio_on_answer_side()}, web {web_content}.')
 
     if state == "answer" and not card.replay_question_audio_on_answer_side():
         web_content.eval("ankimedia.skip_front = true;")
@@ -108,17 +108,17 @@ def on_audio_will_replay(web_content: WebContent, card: Card, state: str):
     web_content.eval("ankimedia.replay();")
 
 
-def on_show_both_sides_will_toggle(web_content: WebContent,  card: Card, state: str, toggle: bool):
-    # print(f'on_show_both_sides_will_toggle state {state}, toggle {toggle}, web {web_content}.')
+def show_both_sides_will_toggle(web_content: WebContent,  card: Card, state: str, toggle: bool):
+    # print(f'show_both_sides_will_toggle state {state}, toggle {toggle}, web {web_content}.')
     web_content.eval("ankimedia._reset();")
 
     if state == "question" and toggle:
         web_content.eval("ankimedia.skip_front = true;")
 
 
-gui_hooks.webview_did_init.append(on_webview_did_init)
-gui_hooks.card_will_show_state.append(on_card_will_show_state)
-gui_hooks.audio_will_toggle.append(on_audio_will_toggle)
-gui_hooks.audio_will_replay.append(on_audio_will_replay)
-gui_hooks.show_both_sides_will_toggle.append(on_show_both_sides_will_toggle)
-gui_hooks.webview_will_set_content.append(on_webview_will_set_content)
+gui_hooks.webview_did_init.append(webview_did_init)
+gui_hooks.card_will_show_state.append(card_will_show_state)
+gui_hooks.audio_will_toggle.append(audio_will_toggle)
+gui_hooks.audio_will_replay.append(audio_will_replay)
+gui_hooks.show_both_sides_will_toggle.append(show_both_sides_will_toggle)
+gui_hooks.webview_will_set_content.append(webview_will_set_content)
