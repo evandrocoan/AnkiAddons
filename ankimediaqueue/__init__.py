@@ -81,6 +81,7 @@ def webview_did_init(web_content: WebContent, location: CallingFunction):
 
 def card_will_show_state(text: str, card: Card, kind: str, web_content: WebContent, skip_front: bool, has_autoplayed: bool):
     # print(f'card_will_show_state skip_front {skip_front}, autoplay {card.autoplay()}, has_autoplayed {has_autoplayed}, web {web_content}.')
+    enable_javascript_playback(web_content)
 
     if skip_front:
         web_content.eval("ankimedia.skip_front = true;")
@@ -101,6 +102,7 @@ def audio_will_toggle(web_content: WebContent):
 
 def audio_will_replay(web_content: WebContent, card: Card, state: str):
     # print(f'audio_will_replay state {state}, replay_question_audio_on_answer_side {card.replay_question_audio_on_answer_side()}, web {web_content}.')
+    enable_javascript_playback(web_content)
 
     if state == "answer" and not card.replay_question_audio_on_answer_side():
         web_content.eval("ankimedia.skip_front = true;")
