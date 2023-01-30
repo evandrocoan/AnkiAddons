@@ -80,7 +80,7 @@ def on_webview_did_init(web_content: WebContent, location: CallingFunction):
 
 
 def on_card_will_show_state(text: str, card: Card, kind: str, web_content: WebContent, skip_front: bool, has_autoplayed: bool):
-    print(f'on_card_will_show_state skip_front {skip_front}, autoplay {card.autoplay()}, has_autoplayed {has_autoplayed}, web {web_content}.')
+    # print(f'on_card_will_show_state skip_front {skip_front}, autoplay {card.autoplay()}, has_autoplayed {has_autoplayed}, web {web_content}.')
 
     if skip_front:
         web_content.eval("ankimedia.skip_front = true;")
@@ -95,12 +95,12 @@ def on_card_will_show_state(text: str, card: Card, kind: str, web_content: WebCo
 
 
 def on_audio_will_toggle(web_content: WebContent):
-    print(f'on_audio_will_toggle web {web_content}.')
+    # print(f'on_audio_will_toggle web {web_content}.')
     web_content.eval("ankimedia.togglePause();")
 
 
 def on_audio_will_replay(web_content: WebContent, card: Card, state: str):
-    print(f'on_audio_will_replay state {state}, replay_question_audio_on_answer_side {card.replay_question_audio_on_answer_side()}, web {web_content}.')
+    # print(f'on_audio_will_replay state {state}, replay_question_audio_on_answer_side {card.replay_question_audio_on_answer_side()}, web {web_content}.')
 
     if state == "answer" and not card.replay_question_audio_on_answer_side():
         web_content.eval("ankimedia.skip_front = true;")
@@ -109,7 +109,7 @@ def on_audio_will_replay(web_content: WebContent, card: Card, state: str):
 
 
 def on_show_both_sides_will_toggle(web_content: WebContent,  card: Card, state: str, toggle: bool):
-    print(f'on_show_both_sides_will_toggle state {state}, toggle {toggle}, web {web_content}.')
+    # print(f'on_show_both_sides_will_toggle state {state}, toggle {toggle}, web {web_content}.')
     web_content.eval("ankimedia._reset();")
 
     if state == "question" and toggle:
