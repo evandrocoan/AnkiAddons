@@ -36,9 +36,10 @@ import aqt
 
 from typing import Any
 
-from aqt import gui_hooks, CallingFunction
+from aqt import gui_hooks
 from aqt.webview import AnkiWebView
 from aqt.webview import WebContent
+from aqt.webview import WebviewDidInitContext
 
 from aqt.qt import (
     qtmajor,
@@ -70,10 +71,10 @@ def webview_will_set_content(web_content: WebContent, context: Any):
     web_content.js.insert(0, f"/_addons/{addon_package}/web/ankimedia.js")
 
 
-def webview_did_init(web_content: WebContent, location: CallingFunction):
+def webview_did_init(web_content: WebContent, location: WebviewDidInitContext):
     # print(f'webview_did_init {location}, web {web_content}.')
 
-    if location in (CallingFunction.CLAYOUT, CallingFunction.PREVIWER, CallingFunction.MAIN_WINDOW):
+    if location in (WebviewDidInitContext.CLAYOUT, WebviewDidInitContext.PREVIWER, WebviewDidInitContext.MAIN_WINDOW):
         enable_javascript_playback(web_content)
     else:
         print(f'ankimediaqueue, invalid location {location}, web {web_content}.')
