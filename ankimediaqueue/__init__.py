@@ -50,6 +50,9 @@ from aqt import mw
 mw.addonManager.setWebExports(__name__, r"web/ankimedia.js")
 
 from anki.cards import Card
+g_previewer = None
+g_reviewer = None
+g_clayout = None
 
 
 def enable_javascript_playback(web: AnkiWebView) -> None:
@@ -72,7 +75,7 @@ def webview_will_set_content(web_content: WebContent, context: Any):
 
 
 def webview_did_init(web_content: WebContent, location: WebviewDidInitContext):
-    # print(f'webview_did_init {location}, web {web_content}.')
+    print(f'webview_did_init {location}, web {web_content}.')
 
     if location in (WebviewDidInitContext.CLAYOUT, WebviewDidInitContext.PREVIWER, WebviewDidInitContext.MAIN_WINDOW):
         enable_javascript_playback(web_content)
@@ -80,8 +83,55 @@ def webview_did_init(web_content: WebContent, location: WebviewDidInitContext):
         print(f'ankimediaqueue, invalid location {location}, web {web_content}.')
 
 
-def card_will_show_state(text: str, card: Card, kind: str, web_content: WebContent, skip_front: bool, has_autoplayed: bool):
-    # print(f'card_will_show_state skip_front {skip_front}, autoplay {card.autoplay()}, has_autoplayed {has_autoplayed}, web {web_content}.')
+def card_will_show(text: str, card: Card, kind: str):
+    print(f'card_will_show autoplay {card.autoplay()}, kind {kind}.')
+    global g_previewer
+    global g_reviewer
+    global g_clayout
+
+    if kind.startswith('preview'):
+        if not g_previewer:
+            print(f'card_will_show error: global g_previewer not defined {g_previewer}.')
+            return text
+        web_content: WebContent = g_previewer._web
+        skip_front: bool = not g_previewer._show_both_sides and g_previewer._state == "answer"
+        has_autoplayed: bool = False
+
+    elif kind == 'reviewQuestion':
+        if not g_reviewer:
+            print(f'card_will_show error: global g_reviewer not defined {g_reviewer}.')
+            return text
+        web_content: WebContent = g_reviewer.web
+        skip_front: bool = False
+        has_autoplayed: bool = False
+
+    elif kind == 'reviewAnswer':
+        if not g_reviewer:
+            print(f'card_will_show error: global g_reviewer not defined {g_reviewer}.')
+            return text
+        web_content: WebContent = g_reviewer.web
+        skip_front: bool = True
+        has_autoplayed: bool = False
+
+    elif kind == 'clayoutQuestion':
+        if not g_clayout:
+            print(f'card_will_show error: global g_clayout not defined {g_clayout}.')
+            return text
+        web_content: WebContent = g_clayout.preview_web
+        skip_front: bool = False
+        has_autoplayed: bool = g_clayout.have_autoplayed
+
+    elif kind == 'clayoutAnswer':
+        if not g_clayout:
+            print(f'card_will_show error: global g_clayout not defined {g_clayout}.')
+            return text
+        web_content: WebContent = g_clayout.preview_web
+        skip_front: bool = True
+        has_autoplayed: bool = g_clayout.have_autoplayed
+
+    else:
+        print(f'card_will_show unknown type kind {kind}.')
+
     enable_javascript_playback(web_content)
 
     if skip_front:
@@ -96,13 +146,31 @@ def card_will_show_state(text: str, card: Card, kind: str, web_content: WebConte
     return text
 
 
+def previewer_did_init(previewer: aqt.browser.previewer.Previewer):
+    print(f'previewer_did_init web {previewer}.')
+    global g_previewer
+    g_previewer = previewer
+
+
+def reviewer_did_init(reviewer: aqt.reviewer.Reviewer):
+    print(f'reviewer_did_init web {reviewer}.')
+    global g_reviewer
+    g_reviewer = reviewer
+
+
+def card_layout_will_show(clayout: aqt.clayout.CardLayout):
+    print(f'card_layout_will_show web {clayout}.')
+    global g_clayout
+    g_clayout = clayout
+
+
 def audio_will_toggle(web_content: WebContent):
-    # print(f'audio_will_toggle web {web_content}.')
+    print(f'audio_will_toggle web {web_content}.')
     web_content.eval("ankimedia.togglePause();")
 
 
 def audio_will_replay(web_content: WebContent, card: Card, state: str):
-    # print(f'audio_will_replay state {state}, replay_question_audio_on_answer_side {card.replay_question_audio_on_answer_side()}, web {web_content}.')
+    print(f'audio_will_replay state {state}, replay_question_audio_on_answer_side {card.replay_question_audio_on_answer_side()}, web {web_content}.')
     enable_javascript_playback(web_content)
 
     if state == "answer" and not card.replay_question_audio_on_answer_side():
@@ -112,7 +180,7 @@ def audio_will_replay(web_content: WebContent, card: Card, state: str):
 
 
 def show_both_sides_will_toggle(web_content: WebContent,  card: Card, state: str, toggle: bool):
-    # print(f'show_both_sides_will_toggle state {state}, toggle {toggle}, web {web_content}.')
+    print(f'show_both_sides_will_toggle state {state}, toggle {toggle}, web {web_content}.')
     web_content.eval("ankimedia._reset();")
 
     if state == "question" and toggle:
@@ -120,8 +188,11 @@ def show_both_sides_will_toggle(web_content: WebContent,  card: Card, state: str
 
 
 gui_hooks.webview_did_init.append(webview_did_init)
-gui_hooks.card_will_show_state.append(card_will_show_state)
+gui_hooks.card_will_show.append(card_will_show)
 gui_hooks.audio_will_toggle.append(audio_will_toggle)
+gui_hooks.previewer_did_init.append(previewer_did_init)
+gui_hooks.reviewer_did_init.append(reviewer_did_init)
+gui_hooks.card_layout_will_show.append(card_layout_will_show)
 gui_hooks.audio_will_replay.append(audio_will_replay)
 gui_hooks.show_both_sides_will_toggle.append(show_both_sides_will_toggle)
 gui_hooks.webview_will_set_content.append(webview_will_set_content)
