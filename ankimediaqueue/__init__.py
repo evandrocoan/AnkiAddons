@@ -39,7 +39,7 @@ from typing import Any
 from aqt import gui_hooks
 from aqt.webview import AnkiWebView
 from aqt.webview import WebContent
-from aqt.webview import WebviewDidInitContext
+from aqt.webview import AnkiWebViewKind
 
 from aqt.qt import (
     qtmajor,
@@ -55,8 +55,8 @@ g_reviewer = None
 g_clayout = None
 
 
-def enable_javascript_playback(web: AnkiWebView) -> None:
-    page_settings = web._page.settings()
+def enable_javascript_playback(webview: AnkiWebView) -> None:
+    page_settings = webview._page.settings()
 
     if qtmajor > 5 and qtminor > 1:
         page_settings.setAttribute(
@@ -74,13 +74,13 @@ def webview_will_set_content(web_content: WebContent, context: Any):
     web_content.js.insert(0, f"/_addons/{addon_package}/web/ankimedia.js")
 
 
-def webview_did_init(web_content: WebContent, location: WebviewDidInitContext):
-    print(f'webview_did_init {location}, web {web_content}.')
+def card_review_webview_did_init(webview: AnkiWebView, kind: AnkiWebViewKind):
+    print(f'card_review_webview_did_init {kind}, web {webview}.')
 
-    if location in (WebviewDidInitContext.CLAYOUT, WebviewDidInitContext.PREVIWER, WebviewDidInitContext.MAIN_WINDOW):
-        enable_javascript_playback(web_content)
+    if kind in (AnkiWebViewKind.CARD_LAYOUT, AnkiWebViewKind.PREVIEWER, AnkiWebViewKind.MAIN):
+        enable_javascript_playback(webview)
     else:
-        print(f'ankimediaqueue, invalid location {location}, web {web_content}.')
+        print(f'ankimediaqueue, invalid location {location}, web {webview}.')
 
 
 def card_will_show(text: str, card: Card, kind: str):
@@ -93,7 +93,7 @@ def card_will_show(text: str, card: Card, kind: str):
         if not g_previewer:
             print(f'card_will_show error: global g_previewer not defined {g_previewer}.')
             return text
-        web_content: WebContent = g_previewer._web
+        webview: AnkiWebView = g_previewer._web
         skip_front: bool = not g_previewer._show_both_sides and g_previewer._state == "answer"
         has_autoplayed: bool = False
 
@@ -101,7 +101,7 @@ def card_will_show(text: str, card: Card, kind: str):
         if not g_reviewer:
             print(f'card_will_show error: global g_reviewer not defined {g_reviewer}.')
             return text
-        web_content: WebContent = g_reviewer.web
+        webview: AnkiWebView = g_reviewer.web
         skip_front: bool = False
         has_autoplayed: bool = False
 
@@ -109,7 +109,7 @@ def card_will_show(text: str, card: Card, kind: str):
         if not g_reviewer:
             print(f'card_will_show error: global g_reviewer not defined {g_reviewer}.')
             return text
-        web_content: WebContent = g_reviewer.web
+        webview: AnkiWebView = g_reviewer.web
         skip_front: bool = True
         has_autoplayed: bool = False
 
@@ -117,7 +117,7 @@ def card_will_show(text: str, card: Card, kind: str):
         if not g_clayout:
             print(f'card_will_show error: global g_clayout not defined {g_clayout}.')
             return text
-        web_content: WebContent = g_clayout.preview_web
+        webview: AnkiWebView = g_clayout.preview_web
         skip_front: bool = False
         has_autoplayed: bool = g_clayout.have_autoplayed
 
@@ -125,23 +125,23 @@ def card_will_show(text: str, card: Card, kind: str):
         if not g_clayout:
             print(f'card_will_show error: global g_clayout not defined {g_clayout}.')
             return text
-        web_content: WebContent = g_clayout.preview_web
+        webview: AnkiWebView = g_clayout.preview_web
         skip_front: bool = True
         has_autoplayed: bool = g_clayout.have_autoplayed
 
     else:
         print(f'card_will_show unknown type kind {kind}.')
 
-    enable_javascript_playback(web_content)
+    enable_javascript_playback(webview)
 
     if skip_front:
-        web_content.eval("ankimedia.skip_front = true;")
+        webview.eval("ankimedia.skip_front = true;")
 
     if not has_autoplayed:
-        web_content.eval(f"ankimedia._reset({{skip_front_reset: {'true' if skip_front else 'false'}}});")
+        webview.eval(f"ankimedia._reset({{skip_front_reset: {'true' if skip_front else 'false'}}});")
 
     if not card.autoplay():
-        web_content.eval("ankimedia.autoplay = false;")
+        webview.eval("ankimedia.autoplay = false;")
 
     return text
 
@@ -164,35 +164,35 @@ def card_layout_will_show(clayout: aqt.clayout.CardLayout):
     g_clayout = clayout
 
 
-def audio_will_toggle(web_content: WebContent):
-    print(f'audio_will_toggle web {web_content}.')
-    web_content.eval("ankimedia.togglePause();")
+def audio_did_pause_or_unpause(webview: AnkiWebView):
+    print(f'audio_did_pause_or_unpause web {webview}.')
+    webview.eval("ankimedia.togglePause();")
 
 
-def audio_will_replay(web_content: WebContent, card: Card, state: str):
-    print(f'audio_will_replay state {state}, replay_question_audio_on_answer_side {card.replay_question_audio_on_answer_side()}, web {web_content}.')
-    enable_javascript_playback(web_content)
+def audio_will_replay(webview: AnkiWebView, card: Card, is_front_side: bool):
+    print(f'audio_will_replay is_front_side {is_front_side}, replay_question_audio_on_answer_side {card.replay_question_audio_on_answer_side()}, web {webview}.')
+    enable_javascript_playback(webview)
 
-    if state == "answer" and not card.replay_question_audio_on_answer_side():
-        web_content.eval("ankimedia.skip_front = true;")
+    if not is_front_side and not card.replay_question_audio_on_answer_side():
+        webview.eval("ankimedia.skip_front = true;")
 
-    web_content.eval("ankimedia.replay();")
-
-
-def show_both_sides_will_toggle(web_content: WebContent,  card: Card, state: str, toggle: bool):
-    print(f'show_both_sides_will_toggle state {state}, toggle {toggle}, web {web_content}.')
-    web_content.eval("ankimedia._reset();")
-
-    if state == "question" and toggle:
-        web_content.eval("ankimedia.skip_front = true;")
+    webview.eval("ankimedia.replay();")
 
 
-gui_hooks.webview_did_init.append(webview_did_init)
+def previewer_will_redraw_after_show_both_sides_toggled(webview: AnkiWebView,  card: Card, is_front_side: bool, show_both_sides: bool):
+    print(f'previewer_will_redraw_after_show_both_sides_toggled state {is_front_side}, show_both_sides {show_both_sides}, web {webview}.')
+    webview.eval("ankimedia._reset();")
+
+    if is_front_side and show_both_sides:
+        webview.eval("ankimedia.skip_front = true;")
+
+
+gui_hooks.card_review_webview_did_init.append(card_review_webview_did_init)
 gui_hooks.card_will_show.append(card_will_show)
-gui_hooks.audio_will_toggle.append(audio_will_toggle)
+gui_hooks.audio_did_pause_or_unpause.append(audio_did_pause_or_unpause)
 gui_hooks.previewer_did_init.append(previewer_did_init)
 gui_hooks.reviewer_did_init.append(reviewer_did_init)
 gui_hooks.card_layout_will_show.append(card_layout_will_show)
 gui_hooks.audio_will_replay.append(audio_will_replay)
-gui_hooks.show_both_sides_will_toggle.append(show_both_sides_will_toggle)
+gui_hooks.previewer_will_redraw_after_show_both_sides_toggled.append(previewer_will_redraw_after_show_both_sides_toggled)
 gui_hooks.webview_will_set_content.append(webview_will_set_content)
