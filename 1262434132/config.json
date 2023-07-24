@@ -1,0 +1,15 @@
+{	
+	"field_name_expression": "Expression",
+	"field_name_reading": "Reading",
+	"field_name_jisho_reading": "JishoReading",
+	"field_name_sound": "Sound",
+	"field_name_meaning": "Meaning",
+	"field_name_part_of_speech": "PartOfSpeech",
+	"field_name_tags": "Tags",
+	"field_name_restrictions": "Restrictions",
+	"field_name_see_also": "SeeAlso",
+	"field_name_antonyms": "Antonyms",
+	"field_name_info": "Info",
+	"field_name_other_expression": "OtherExpression",
+	"field_name_other_jisho_reading": "OtherJishoReading"
+}
