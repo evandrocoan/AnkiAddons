@@ -10,6 +10,7 @@
 	"field_name_see_also": "SeeAlso",
 	"field_name_antonyms": "Antonyms",
 	"field_name_info": "Info",
+	"field_json_info": "InfoJson",
 	"field_name_other_expression": "OtherExpression",
 	"field_name_other_jisho_reading": "OtherJishoReading"
 }

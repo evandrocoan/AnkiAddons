@@ -152,6 +152,9 @@ def fill_note_fields_using_jisho(editor: Editor, search):
                 try_set_field(editor.note, config['field_name_other_jisho_reading'] + suffix, other['reading'])
     except KeyError:
         pass
+
+    try_set_field(editor.note, config['field_json_info'], str(parsed_json['data']))
+
     # field_name_meaning
     try_set_all_field(editor.note, config['field_name_meaning'], english_definitions)
     # field_name_part_of_speech
@@ -166,6 +169,7 @@ def fill_note_fields_using_jisho(editor: Editor, search):
     try_set_all_field(editor.note, config['field_name_antonyms'], antonyms)
     # field_name_info
     try_set_all_field(editor.note, config['field_name_info'], info)
+
     
     if config['field_name_sound'] in editor.note:
         # download_audio
