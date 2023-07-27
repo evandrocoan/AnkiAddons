@@ -7,7 +7,7 @@
       <span class="meaning-meaning">yen (Japanese monetary unit)</span>
       <span>​</span>
     </div>
-    <span class="sentences zero-padding">
+    <!-- <span class="sentences zero-padding">
       <div class="sentence" style="">
         <ul class="japanese japanese_gothic clearfix" lang="ja">
           <li class="clearfix"><span class="furigana">わたし</span><span class="unlinked">私</span></li>
@@ -24,7 +24,8 @@
         </ul>
         <span class="english" lang="en">It cost me 3,000 yen to buy the record.</span>
       </div>
-    </span>
+    </span> -->
+    <span class="sentences zero-padding"><div class="sentence" style=""><ul class="japanese japanese_gothic clearfix" lang="ja"><li class="clearfix"><span class="furigana">なつ</span><span class="unlinked">夏</span></li><li class="clearfix"><span class="unlinked">の</span></li><li class="clearfix"><span class="furigana">あいだ</span><span class="unlinked">間</span></li><li class="clearfix"><span class="furigana">かれ</span><span class="unlinked">彼ら</span></li><li class="clearfix"><span class="unlinked">は</span></li><li class="clearfix"><span class="furigana">いえ</span><span class="unlinked">家</span></li><li class="clearfix"><span class="unlinked">を</span></li><li class="clearfix"><span class="furigana">ひと</span><span class="unlinked">人</span></li><li class="clearfix"><span class="unlinked">に</span></li><li class="clearfix"><span class="furigana">か</span><span class="unlinked">貸した</span></li>。</ul><span class="english" lang="en">They lent their house for the summer.</span></div></span>
   </div>
   <div class="meaning-tags">Noun</div>
   <div class="meaning-wrapper">
@@ -33,7 +34,7 @@
       <span class="meaning-meaning">circle</span>
       <span>​</span>
     </div>
-    <span class="sentences zero-padding">
+    <!-- <span class="sentences zero-padding">
       <div class="sentence" style="">
         <ul class="japanese japanese_gothic clearfix" lang="ja">
           <li class="clearfix"><span class="furigana">かんぜん</span><span class="unlinked">完全な</span></li>
@@ -47,7 +48,7 @@
         </ul>
         <span class="english" lang="en">It no longer seems to be a perfect circle.</span>
       </div>
-    </span>
+    </span> -->
   </div>
   <div class="meaning-tags">Wikipedia definition</div>
   <div class="meaning-wrapper">
@@ -109,7 +110,14 @@
                 continue;
             }
 
-            if (spanElement.textContent === '​' && spanElement.parentNode.nextSibling !== null && spanElement.parentNode !== null) {
+            // remove <span class="hit">円</span> but keep the contents
+            const hitElement = spanElement.querySelector('.hit');
+            if(hitElement) {
+                const textNode = document.createTextNode(hitElement.textContent);
+                hitElement.parentNode.replaceChild(textNode, hitElement);
+            }
+
+            if (spanElement.textContent === '​') {
                 const textNode = document.createTextNode(': ');
                 spanElement.parentNode.replaceChild(textNode, spanElement);
             }
@@ -127,8 +135,24 @@
                     const ruby = document.createElement('ruby');
                     const rt = document.createElement('rt');
                     rt.innerHTML = furigana.innerHTML;
-                    ruby.insertAdjacentHTML('beforeend', kanji.innerHTML)
+                    if(kanji.innerHTML != kanji.textContent) {
+                        throw new Error(`${kanji.innerHTML} != ${kanji.textContent}`);
+                    }
+                    // fix jisho bug where kanji is not separated from kana
+                    let kanaList = [];
+                    let kanjiList = [];
+                    for (let i = 0; i < kanji.textContent.length; i++) {
+                        const character = kanji.textContent.charAt(i);
+                        if (/[\u3040-\u309F\u30A0-\u30FF]/g.test(character)) {
+                            kanaList.push(character);
+                        }
+                        else {
+                            kanjiList.push(character);
+                        }
+                    }
+                    ruby.insertAdjacentHTML('beforeend', kanjiList.join(''));
                     ruby.appendChild(rt);
+                    ruby.insertAdjacentHTML('beforeend', kanaList.join(''));
                     japaneseListItem.innerHTML = '';
                     japaneseListItem.appendChild(ruby);
                 }
@@ -185,7 +209,7 @@
                 const englishText = english.textContent;
                 sentence.removeChild(english);
                 const newSpan = document.createElement('span');
-                newSpan.classList.add('english');
+                newSpan.classList.add('japanese-english');
                 newSpan.textContent = englishText;
                 sentence.parentNode.appendChild(newSpan);
             }
@@ -196,20 +220,26 @@
         while (divs.length > 0) {
             for (let i = 0; i < divs.length; i++) {
                 const div = divs[i];
-                if (!div.classList.contains('meaning-tags')) {
-                    const span = document.createElement('span');
-                    span.innerHTML = div.innerHTML;
-                    div.parentNode.replaceChild(span, div);
-                }
+                const span = document.createElement('span');
+                span.innerHTML = div.innerHTML;
+                div.parentNode.replaceChild(span, div);
             }
             divs = docCopy.querySelectorAll('div');
         }
+
+        // prefix href=/search with 'https://jisho.org/'
+        const links = docCopy.querySelectorAll('[href^="/"]');
+        links.forEach(function(link) {
+            const href = link.getAttribute('href');
+            link.setAttribute('href', 'https://jisho.org' + href);
+        });
 
         const removeButtons = docCopy.querySelectorAll('.remove-this-button');
         removeButtons.forEach(button => {
             button.remove();
         });
 
+        return;
         const html = docCopy.outerHTML;
         navigator.clipboard.writeText(html)
         .then(() => {
