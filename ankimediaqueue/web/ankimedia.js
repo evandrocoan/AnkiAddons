@@ -90,7 +90,6 @@ class AnkiMediaQueue {
         // Pause all medias before resetting the state of the next card
         let allmedias = new Map([
             ...this.medias,
-            ['_playing_media', this._playing_media],
             ['_playing_element', this._playing_element],
         ]);
         try {
@@ -118,7 +117,6 @@ class AnkiMediaQueue {
         this._add_duplicates_reset = 0;
         this._addall_reset = 0;
         this._addall_last_where = "front";
-        this._playing_media = undefined;
         this._playing_element = undefined;
         this._clearPlayingElement();
         this._was_next_play_paused = false;
@@ -663,7 +661,7 @@ class AnkiMediaQueue {
                     this.playing_back.length = 0;
                 }
                 this.is_autoplay = false;
-                this._playing_media = target;
+                this._playing_element = target;
                 this._was_next_play_paused = false;
                 setAnkiMedia((media) => {
                     // console.log(`${media.id != target.id}, media.id ${media.id}, target.id ${target.id}...`);
@@ -692,15 +690,14 @@ class AnkiMediaQueue {
             this._was_next_play_paused = false;
             return this._playnext();
         }
-        let playing_media = this._playing_element ? this._playing_element : this._playing_media;
-        if (playing_media && playing_media.paused) {
+        if (this._playing_element && this._playing_element.paused) {
             this._is_playing_resuming = true;
-            let playpromise = playing_media.play();
+            let playpromise = this._playing_element.play();
             if (playpromise) {
                 playpromise.catch((error) => {
                     this._is_playing_resuming = false;
                     console.log(`ankimedia.togglePause: Could not unpause the media due to '${error}'! ` +
-                        this._getMediaInfo(playing_media));
+                        this._getMediaInfo(this._playing_element));
                 });
             }
             return true;
