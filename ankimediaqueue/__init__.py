@@ -2,7 +2,7 @@
 
 """
 Copyright 2023 @ Evandro Coan
-Anki Addon to bury related siblings sources
+Anki Addon to play HTML media elements automatically
 
 Redistributions of source code must retain the above
 copyright notice, this list of conditions and the
