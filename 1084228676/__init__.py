@@ -54,10 +54,10 @@ def tooltipWithColour(msg, color, x=0, y=20, xref=1, period=3000, parent=None, w
 <td style="padding: 8px 13px; text-align: center;">"""+msg+"""</td>
 </tr>
 </table>""", aw)
-	lab.setFrameStyle(QFrame.Panel)
+	lab.setFrameStyle(QFrame.Shape.Panel)
 	lab.setLineWidth(2)
-	lab.setWindowFlags(Qt.ToolTip)
-	lab.setAlignment(Qt.AlignBottom | Qt.AlignHCenter)
+	lab.setWindowFlags(Qt.WindowType.ToolTip)
+	lab.setAlignment(Qt.AlignmentFlag.AlignBottom | Qt.AlignmentFlag.AlignHCenter)
 	
 	# adjust height if user configured custom height
 	
@@ -67,8 +67,8 @@ def tooltipWithColour(msg, color, x=0, y=20, xref=1, period=3000, parent=None, w
 		lab.setFixedHeight(height)
 	
 	p = QPalette()
-	p.setColor(QPalette.Window, QColor(color))
-	p.setColor(QPalette.WindowText, QColor("#000000"))
+	p.setColor(QPalette.ColorRole.Window, QColor(color))
+	p.setColor(QPalette.ColorRole.WindowText, QColor("#000000"))
 	lab.setPalette(p)
 	lab.show()
 	lab.move(QPoint(x - int(round(lab.width() * 0.5 * xref, 0)), y))

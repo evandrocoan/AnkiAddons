@@ -7,7 +7,7 @@ from aqt import mw
 from aqt.qt import qconnect
 from aqt.editor import Editor
 from aqt.utils import showInfo
-from anki.utils import stripHTML
+from anki.utils import strip_html
 from anki.media import media_paths_from_col_path
 
 
@@ -24,7 +24,7 @@ def on_context_menu(editor_webview, menu):
     if current_field is not None:
         for field_index, field_name in enumerate(mw.col.models.fieldNames(editor.note.model())):
             if field_index == current_field and (field_name == config['field_name_expression'] or field_name == config['field_name_meaning']):
-                search = stripHTML(mw.col.media.strip(editor.note[field_name]))
+                search = strip_html(mw.col.media.strip(editor.note[field_name]))
                 if search:
                     action = menu.addAction(_(f"Jisho Automatic Card Generation"))
                     qconnect(action.triggered, lambda: fill_note_fields_using_jisho(editor, search))
