@@ -707,6 +707,16 @@ class AnkiMediaQueue {
         }, this.other_medias);
         return false;
     }
+    /**
+     * Return false if a media was not sought and true if a media was sought.
+     */
+    seekRelative(seconds) {
+        if (this._playing_element) {
+            this._playing_element.currentTime += seconds;
+            return true;
+        }
+        return false;
+    }
 }
 var ankimedia = new AnkiMediaQueue();
 // @ts-ignore: Allow jest to import this and do unit tests

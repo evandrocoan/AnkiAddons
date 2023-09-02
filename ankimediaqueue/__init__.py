@@ -174,6 +174,11 @@ def audio_did_pause_or_unpause(webview: AnkiWebView):
     webview.eval("ankimedia.togglePause();")
 
 
+def audio_did_seek_relative(webview: AnkiWebView, seek_seconds: int):
+    debug(f'audio_did_seek_relative web {webview}, {seek_seconds}.')
+    webview.eval(f"ankimedia.seekRelative({seek_seconds});")
+
+
 def audio_will_replay(webview: AnkiWebView, card: Card, is_front_side: bool):
     debug(f'audio_will_replay is_front_side {is_front_side}, replay_question_audio_on_answer_side {card.replay_question_audio_on_answer_side()}, web {webview}.')
     enable_javascript_playback(webview)
@@ -195,6 +200,7 @@ def previewer_will_redraw_after_show_both_sides_toggled(webview: AnkiWebView,  c
 gui_hooks.card_review_webview_did_init.append(card_review_webview_did_init)
 gui_hooks.card_will_show.append(card_will_show)
 gui_hooks.audio_did_pause_or_unpause.append(audio_did_pause_or_unpause)
+gui_hooks.audio_did_seek_relative.append(audio_did_seek_relative)
 gui_hooks.previewer_did_init.append(previewer_did_init)
 gui_hooks.reviewer_did_init.append(reviewer_did_init)
 gui_hooks.card_layout_will_show.append(card_layout_will_show)
