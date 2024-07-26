@@ -67,6 +67,7 @@ from anki.utils import stripHTML
 from anki.consts import QUEUE_TYPE_REV
 from anki.consts import QUEUE_TYPE_NEW
 
+import aqt
 from aqt import gui_hooks
 from aqt.webview import AnkiWebView
 from aqt.webview import WebContent
@@ -75,6 +76,8 @@ from aqt.webview import AnkiWebViewKind
 from aqt.qt import (
     qtmajor,
     qtminor,
+    QAction,
+    qconnect,
 )
 
 from anki.cards import Card
@@ -84,20 +87,21 @@ def debug(*args, **kwargs):
     # print(*args, **kwargs)
     pass
 
-from anki.scheduler.v1 import Scheduler as SchedulerV1
-from anki.scheduler.v2 import Scheduler as SchedulerV2
 from anki.scheduler.v3 import Scheduler as SchedulerV3
 
 
-def getCardV2(self):
-    """Pop the next card from the queue. None if finished."""
-    self._checkDay()
-    if not self._haveQueues:
-        self.reset()
+def getCardV3(self):
+    """Fetch the next card from the queue. None if finished."""
     while True:
-        card = self._getCard()
-        if not card:
-            break
+        try:
+            queued_card = self.get_queued_cards().cards[0]
+        except IndexError:
+            return None
+
+        card = Card(self.col)
+        card._load_from_backend_card(queued_card.card)
+        card.start_timer()
+
         # https://anki.tenderapp.com/discussions/beta-testing/1850-cards-marked-as-buried-are-being-scheduled
         if card.queue > -1:
             timespacing = 7
@@ -245,22 +249,18 @@ def getCardV2(self):
                     self._reset_counts()
                     self._resetNew()
             break
-    if card:
-        if not self._burySiblingsOnAnswer:
-            self._burySiblings(card)
-        card.start_timer()
-        return card
-    return None
+
+    return card
 
 
 @staticmethod
-def tryGetV2(field, note):
+def tryGetV3(field, note):
     if field in note:
         return note[field]
     return None
 
 @classmethod
-def getSourceV2(cls, note):
+def getSourceV3(cls, note):
     if note is None:
         return None
 
@@ -268,7 +268,7 @@ def getSourceV2(cls, note):
     return strip_html(source) if source else None
 
 @classmethod
-def getSiblingV2(cls, note):
+def getSiblingV3(cls, note):
     if note is None:
         return None
 
@@ -276,7 +276,7 @@ def getSiblingV2(cls, note):
     return strip_html(source) if source else None
 
 @staticmethod
-def combineListAlternatingV2(*iterators):
+def combineListAlternatingV3(*iterators):
     # https://stackoverflow.com/questions/3678869/pythonic-way-to-combine-two-lists-in-an-alternating-fashion
     # merge("abc", "lmn1234", "xyz9", [None])
     # ['a', 'l', 'x', None, 'b', 'm', 'y', 'c', 'n', 'z', '1', '9', '2', '3', '4']
@@ -287,7 +287,7 @@ def combineListAlternatingV2(*iterators):
         if element is not object
     ]
 
-def rebuildSourcesCacheV2(self, timespacing):
+def rebuildSourcesCacheV3(self, timespacing):
     # rebuilds the cache if Anki stayed open over night
     if not hasattr(self, "cardSourceIds") or self.cardSourceIdsTime < self.today:
         self.cardSourceIdsTime = self.today
@@ -365,109 +365,25 @@ def rebuildSourcesCacheV2(self, timespacing):
         ):
             self.cardDueReviewInNextDays[cid] = due
 
-@functools.lru_cache(maxsize=1)
-def cached_deck_due_treeV2(self, deck_id: DeckId, cache_life: int = 0):
-    del cache_life  # shut pylint up
-    return self.deck_due_tree(deck_id)
 
-@staticmethod
-def get_ttl_hashV2(seconds: float):
-    """Return the same value withing `seconds` time period
-    https://stackoverflow.com/questions/31771286/python-in-memory-cache-with-time-to-live"""
-    if not seconds:
-        return None
-    return round(time.time() / seconds)
+SchedulerV3.getCard = getCardV3
+SchedulerV3.tryGet = tryGetV3
+SchedulerV3.getSource = getSourceV3
+SchedulerV3.getSibling = getSiblingV3
+SchedulerV3.combineListAlternating = combineListAlternatingV3
+SchedulerV3.rebuildSourcesCache = rebuildSourcesCacheV3
+SchedulerV3.skipEmptyCards = False
 
-def _reset_countsV2(self) -> None:
-    node = self.cached_deck_due_tree(
-        self._current_deck_id, cache_life=self.get_ttl_hash(30)
-    )
-    if not node:
-        # current deck points to a missing deck
-        self.newCount = 0
-        self.revCount = 0
-        self._immediate_learn_count = 0
+
+def toggleSkipEmptyCardsMenu() -> None:
+    aqt.mw.col.sched.skipEmptyCards = not aqt.mw.col.sched.skipEmptyCards
+    if aqt.mw.col.sched.skipEmptyCards:
+        toggleSkipEmptyCards.setText("Toggle skip empty cards (off)")
     else:
-        self.newCount = node.new_count
-        self.revCount = node.review_count
-        self._immediate_learn_count = node.learn_count
+        toggleSkipEmptyCards.setText("Toggle skip empty cards (on)")
 
-def _fillNewV2(self, recursing: bool = False) -> bool:
-    if self._newQueue:
-        return True
-    if not self.newCount:
-        return False
-    while self._newDids:
-        did = self._newDids[0]
-        lim = min(
-            self.queueLimit,
-            self._deckNewLimit(did, cache_life=self.get_ttl_hash(30)),
-        )
-        if lim:
-            # fill the queue with the current did
-            self._newQueue = self.col.db.list(
-                f"""
-            select id from cards where did = ? and queue = {QUEUE_TYPE_NEW} order by due,ord limit ?""",
-                did,
-                lim,
-            )
-            if self._newQueue:
-                self._newQueue.reverse()
-                return True
-        # nothing left in the deck; move to next
-        self._newDids.pop(0)
-    else:
-        return False
-
-@functools.lru_cache(maxsize=1024)
-def _deckNewLimitV2(
-    self,
-    did: DeckId,
-    fn: Callable[[DeckDict], int] = None,
-    cache_life: int = 0,
-) -> int:
-    del cache_life  # shut pylint up
-    if not fn:
-        fn = self._deckNewLimitSingle
-    sel = self.col.decks.get(did)
-    lim = -1
-    # for the deck and each of its parents
-    for g in [sel] + self.col.decks.parents(did):
-        rem = fn(g)
-        if lim == -1:
-            lim = rem
-        else:
-            lim = min(rem, lim)
-    return lim
-
-def _daysLateV2(self, card: Card) -> int:
-    "Number of days later than scheduled."
-    due = card.odue if card.odid else card.due
-    delay = max(0, self.today - due)
-    lastIvl = (
-        card.lastIvl
-        if hasattr(card, "lastIvl")
-        else (card.ivl if hasattr(card, "ivl") else 5)
-    )
-    lastIvl = lastIvl if lastIvl > 0 else 3
-    # print(f'{card.id} Default delay {delay}, Fixed delay {lastIvl}, Using new {lastIvl < delay}.')
-    if lastIvl < delay:
-        delay = lastIvl
-    return delay
-
-
-SchedulerV2.getCard = getCardV2
-SchedulerV2.tryGet = tryGetV2
-SchedulerV2.getSource = getSourceV2
-SchedulerV2.getSibling = getSiblingV2
-SchedulerV2.combineListAlternating = combineListAlternatingV2
-SchedulerV2.rebuildSourcesCache = rebuildSourcesCacheV2
-SchedulerV2.skipEmptyCards = False
-SchedulerV2.cached_deck_due_tree = cached_deck_due_treeV2
-SchedulerV2.get_ttl_hash = get_ttl_hashV2
-SchedulerV2._reset_counts = _reset_countsV2
-SchedulerV2._fillNew = _fillNewV2
-SchedulerV2._deckNewLimit = _deckNewLimitV2
-SchedulerV2._daysLate = _daysLateV2
-
+toggleSkipEmptyCards = QAction(aqt.mw)
+aqt.mw.form.menuTools.addAction(toggleSkipEmptyCards)
+toggleSkipEmptyCards.setText("Toggle skip empty cards (on)")
+qconnect(toggleSkipEmptyCards.triggered, toggleSkipEmptyCardsMenu)
 
