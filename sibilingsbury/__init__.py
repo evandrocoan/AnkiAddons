@@ -90,13 +90,21 @@ def debug(*args, **kwargs):
 from anki.scheduler.v3 import Scheduler as SchedulerV3
 
 
-def getCardV3(self):
-    """Fetch the next card from the queue. None if finished."""
+def get_queued_cardsV3(
+    self,
+    *,
+    fetch_limit: int = 1,
+    intraday_learning_only: bool = False,
+) -> QueuedCards:
+    "Returns zero or more pending cards, and the remaining counts. Idempotent."
     while True:
         try:
-            queued_card = self.get_queued_cards().cards[0]
+            queued_cards = self.col._backend.get_queued_cards(
+                fetch_limit=fetch_limit, intraday_learning_only=intraday_learning_only
+            )
+            queued_card = queued_cards.cards[0]
         except IndexError:
-            return None
+            return []
 
         card = Card(self.col)
         card._load_from_backend_card(queued_card.card)
@@ -114,10 +122,6 @@ def getCardV3(self):
                 ):
                     self.bury_cards([card.id], manual=False)
                     # print(f"{datetime.now()}     Skipping card {card.id}/{card.nid} with empty front.")
-                    if card.queue == QUEUE_TYPE_NEW:
-                        if self._newDids:
-                            self._newDids.pop(0)  # avoid burring the whole deck
-                        self._reset_counts()
                     continue
 
             note = self.noteNotes.get(card.nid)
@@ -126,7 +130,7 @@ def getCardV3(self):
             # print(f"{datetime.now()} getting source card {card.id}, {source_field}/{sibling_field}...")
 
             # Only enable siblings burring if there is a source field set
-            if self._burySiblingsOnAnswer and sibling_field:
+            if sibling_field:
                 review_next_card = False
                 siblings = self.cardSiblingIds[sibling_field]
                 card_index = siblings.index(card.id)
@@ -195,12 +199,9 @@ def getCardV3(self):
                     next_available_start_date = min(max(timespacing - actual_period, 1) + 1, 8)
                     self.set_due_date([card.id], f"{next_available_start_date}")
                     self.bury_cards([card.id], manual=False)
-                    if card.queue == QUEUE_TYPE_NEW:
-                        self._reset_counts()
-                        self._resetNew()
                     continue
 
-            if self._burySiblingsOnAnswer and source_field:
+            if source_field:
                 # bury related sources
                 burySet = set()
                 has_new_card_buried = False
@@ -223,8 +224,6 @@ def getCardV3(self):
                                 #         f"{cid}, {card.template()['name']}, {source_field}/{sibling_field}.")
                                 self.set_due_date([card.id], "1-7")
                                 self.bury_cards([card.id], manual=False)
-                                self._reset_counts()
-                                self._resetNew()
                                 review_next_card = True
                                 break
                         else:
@@ -244,13 +243,9 @@ def getCardV3(self):
                     #     f"{queue_type:2}, {source_field}/{sibling_field}, {burySet}.")
                     self.set_due_date(burySet, "1-7")
                     self.bury_cards(burySet, manual=False)
-
-                if has_new_card_buried:
-                    self._reset_counts()
-                    self._resetNew()
             break
 
-    return card
+    return queued_cards
 
 
 @staticmethod
@@ -366,7 +361,7 @@ def rebuildSourcesCacheV3(self, timespacing):
             self.cardDueReviewInNextDays[cid] = due
 
 
-SchedulerV3.getCard = getCardV3
+SchedulerV3.get_queued_cards = get_queued_cardsV3
 SchedulerV3.tryGet = tryGetV3
 SchedulerV3.getSource = getSourceV3
 SchedulerV3.getSibling = getSiblingV3
