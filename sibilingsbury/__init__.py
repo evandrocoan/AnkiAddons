@@ -94,7 +94,7 @@ def debug(*args, **kwargs):
 from anki.scheduler.v3 import Scheduler as SchedulerV3
 
 
-def get_queued_cardsV3(
+def get_queued_cards(
     self,
     *,
     fetch_limit: int = 1,
@@ -109,12 +109,9 @@ def get_queued_cardsV3(
                 fetch_limit=fetch_limit,
                 intraday_learning_only=intraday_learning_only,
             )
-            queued_card = queued_cards.cards[0]
+            queued_card = queued_cards.cards[card_fetch_index]
         except IndexError:
             return queued_cards
-
-        card_fetch_index += 1
-        fetch_limit += 1
 
         card = Card(self.col)
         card._load_from_backend_card(queued_card.card)
@@ -130,19 +127,22 @@ def get_queued_cardsV3(
                     self.bury_cards([card.id], manual=False)
                     # print(f"{datetime.now()}     Skipping card {card.id}/{card.nid} with empty front.")
                     continue
+            break
 
-        break
+        else:
+            card_fetch_index += 1
+            fetch_limit = card_fetch_index + 1
 
     return queued_cards
 
-def bury_all_siblings_queued_cardsV3(self) -> None:
+def bury_all_siblings_queued_cards(self) -> None:
     card_fetch_index=0
     total_cards_rescheduled = 0
     total_cards_buried = 0
     cards_to_reschedule = []
 
     while True:
-        queued_cards, no_new_cards, cards_rescheduled, cards_buried, to_reschedule = self.get_queued_cards_internal(
+        queued_cards, no_new_cards, cards_rescheduled, cards_buried, to_reschedule, card_fetch_index = self.get_queued_cards_internal(
             fetch_limit=1,
             intraday_learning_only=False,
             card_fetch_index=card_fetch_index,
@@ -162,7 +162,7 @@ def bury_all_siblings_queued_cardsV3(self) -> None:
     for card_id, days_range in cards_to_reschedule:
         self.set_due_date([card_id], days_range)
 
-def get_queued_cards_internalV3(
+def get_queued_cards_internal(
     self,
     *,
     fetch_limit: int = 1,
@@ -179,12 +179,9 @@ def get_queued_cards_internalV3(
                 fetch_limit=fetch_limit,
                 intraday_learning_only=intraday_learning_only,
             )
-            queued_card = queued_cards.cards[0]
+            queued_card = queued_cards.cards[card_fetch_index]
         except IndexError:
-            return queued_cards, True, cards_rescheduled, cards_buried, to_reschedule
-
-        card_fetch_index += 1
-        fetch_limit += 1
+            return queued_cards, True, cards_rescheduled, cards_buried, to_reschedule, card_fetch_index
 
         card = Card(self.col)
         card._load_from_backend_card(queued_card.card)
@@ -327,19 +324,23 @@ def get_queued_cards_internalV3(
                     to_reschedule.update([(card_id, "1-7") for card_id in burySet])
                     self.bury_cards(burySet, manual=False)
                     cards_rescheduled += 1
-        break
+            break
 
-    return queued_cards, False, cards_rescheduled, cards_buried, to_reschedule
+        else:
+            card_fetch_index += 1
+            fetch_limit = card_fetch_index + 1
+
+    return queued_cards, False, cards_rescheduled, cards_buried, to_reschedule, card_fetch_index
 
 
 @staticmethod
-def tryGetV3(field, note):
+def tryGet(field, note):
     if field in note:
         return note[field]
     return None
 
 @classmethod
-def getSourceV3(cls, note):
+def getSource(cls, note):
     if note is None:
         return None
 
@@ -347,7 +348,7 @@ def getSourceV3(cls, note):
     return strip_html(source) if source else None
 
 @classmethod
-def getSiblingV3(cls, note):
+def getSibling(cls, note):
     if note is None:
         return None
 
@@ -355,7 +356,7 @@ def getSiblingV3(cls, note):
     return strip_html(source) if source else None
 
 @staticmethod
-def combineListAlternatingV3(*iterators):
+def combineListAlternating(*iterators):
     # https://stackoverflow.com/questions/3678869/pythonic-way-to-combine-two-lists-in-an-alternating-fashion
     # merge("abc", "lmn1234", "xyz9", [None])
     # ['a', 'l', 'x', None, 'b', 'm', 'y', 'c', 'n', 'z', '1', '9', '2', '3', '4']
@@ -366,7 +367,7 @@ def combineListAlternatingV3(*iterators):
         if element is not object
     ]
 
-def rebuildSourcesCacheV3(self, timespacing):
+def rebuildSourcesCache(self, timespacing):
     # rebuilds the cache if Anki stayed open over night
     if not hasattr(self, "cardSourceIds") or self.cardSourceIdsTime < self.today:
         self.cardSourceIdsTime = self.today
@@ -445,14 +446,14 @@ def rebuildSourcesCacheV3(self, timespacing):
             self.cardDueReviewInNextDays[cid] = due
 
 
-SchedulerV3.get_queued_cards = get_queued_cardsV3
-SchedulerV3.get_queued_cards_internal = get_queued_cards_internalV3
-SchedulerV3.bury_all_siblings_queued_cards = bury_all_siblings_queued_cardsV3
-SchedulerV3.tryGet = tryGetV3
-SchedulerV3.getSource = getSourceV3
-SchedulerV3.getSibling = getSiblingV3
-SchedulerV3.combineListAlternating = combineListAlternatingV3
-SchedulerV3.rebuildSourcesCache = rebuildSourcesCacheV3
+SchedulerV3.get_queued_cards = get_queued_cards
+SchedulerV3.get_queued_cards_internal = get_queued_cards_internal
+SchedulerV3.bury_all_siblings_queued_cards = bury_all_siblings_queued_cards
+SchedulerV3.tryGet = tryGet
+SchedulerV3.getSource = getSource
+SchedulerV3.getSibling = getSibling
+SchedulerV3.combineListAlternating = combineListAlternating
+SchedulerV3.rebuildSourcesCache = rebuildSourcesCache
 SchedulerV3.skipEmptyCards = False
 
 
