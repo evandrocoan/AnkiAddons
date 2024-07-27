@@ -114,7 +114,7 @@ def bury_all_siblings_queued_cardsV3(self) -> None:
         if cards_rescheduled < 1 and cards_buried < 1 and no_new_cards:
             buryAllSiblingsQueuedCards.setText("Reschedule all siblings cards (already run)")
             buryAllSiblingsQueuedCards.setDisabled(True)
-            show_warning(f"Rescheduled {total_cards_rescheduled} cards and buried {total_cards_buried} cards.\n"
+            show_warning(f"Rescheduled {total_cards_rescheduled} cards and buried {total_cards_buried} cards remaining {card_index} cards.\n"
                 "Run this only once in a day, otherwise it going to reschedule actual good cards.")
             break
 
