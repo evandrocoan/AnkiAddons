@@ -94,19 +94,60 @@ def debug(*args, **kwargs):
 from anki.scheduler.v3 import Scheduler as SchedulerV3
 
 
+def get_queued_cardsV3(
+    self,
+    *,
+    fetch_limit: int = 1,
+    intraday_learning_only: bool = False,
+) -> QueuedCards:
+    "Returns zero or more pending cards, and the remaining counts. Idempotent."
+    card_fetch_index=0
+
+    while True:
+        try:
+            queued_cards = self.col._backend.get_queued_cards(
+                fetch_limit=fetch_limit,
+                intraday_learning_only=intraday_learning_only,
+            )
+            queued_card = queued_cards.cards[0]
+        except IndexError:
+            return queued_cards
+
+        card_fetch_index += 1
+        fetch_limit += 1
+
+        card = Card(self.col)
+        card._load_from_backend_card(queued_card.card)
+        card.start_timer()
+
+        # https://anki.tenderapp.com/discussions/beta-testing/1850-cards-marked-as-buried-are-being-scheduled
+        if card.queue > -1:
+            if self.skipEmptyCards:
+                if (
+                    self.col.tr.card_template_rendering_empty_front()
+                    in card.question()
+                ):
+                    self.bury_cards([card.id], manual=False)
+                    # print(f"{datetime.now()}     Skipping card {card.id}/{card.nid} with empty front.")
+                    continue
+
+        break
+
+    return queued_cards
+
 def bury_all_siblings_queued_cardsV3(self) -> None:
-    card_index=0
+    card_fetch_index=0
     total_cards_rescheduled = 0
     total_cards_buried = 0
     cards_to_reschedule = []
 
     while True:
         queued_cards, no_new_cards, cards_rescheduled, cards_buried, to_reschedule = self.get_queued_cards_internal(
-            fetch_limit=card_index+2,
+            fetch_limit=1,
             intraday_learning_only=False,
-            card_index=card_index
+            card_fetch_index=card_fetch_index,
         )
-        card_index += 1
+        card_fetch_index += 1
         total_cards_rescheduled += cards_rescheduled
         total_cards_buried += cards_buried
         cards_to_reschedule.extend(to_reschedule)
@@ -114,7 +155,7 @@ def bury_all_siblings_queued_cardsV3(self) -> None:
         if cards_rescheduled < 1 and cards_buried < 1 and no_new_cards:
             buryAllSiblingsQueuedCards.setText("Reschedule all siblings cards (already run)")
             buryAllSiblingsQueuedCards.setDisabled(True)
-            show_warning(f"Rescheduled {total_cards_rescheduled} cards and buried {total_cards_buried} cards remaining {card_index} cards.\n"
+            show_warning(f"Rescheduled {total_cards_rescheduled} cards and buried {total_cards_buried} cards remaining {card_fetch_index} cards.\n"
                 "Run this only once in a day, otherwise it going to reschedule actual good cards.")
             break
 
@@ -126,7 +167,7 @@ def get_queued_cards_internalV3(
     *,
     fetch_limit: int = 1,
     intraday_learning_only: bool = False,
-    card_index: int = 0,
+    card_fetch_index: int = 0,
 ):
     "Returns zero or more pending cards, and the remaining counts. Idempotent."
     cards_rescheduled = 0
@@ -135,11 +176,15 @@ def get_queued_cards_internalV3(
     while True:
         try:
             queued_cards = self.col._backend.get_queued_cards(
-                fetch_limit=fetch_limit, intraday_learning_only=intraday_learning_only
+                fetch_limit=fetch_limit,
+                intraday_learning_only=intraday_learning_only,
             )
-            queued_card = queued_cards.cards[card_index]
+            queued_card = queued_cards.cards[0]
         except IndexError:
             return queued_cards, True, cards_rescheduled, cards_buried, to_reschedule
+
+        card_fetch_index += 1
+        fetch_limit += 1
 
         card = Card(self.col)
         card._load_from_backend_card(queued_card.card)
@@ -282,7 +327,7 @@ def get_queued_cards_internalV3(
                     to_reschedule.update([(card_id, "1-7") for card_id in burySet])
                     self.bury_cards(burySet, manual=False)
                     cards_rescheduled += 1
-            break
+        break
 
     return queued_cards, False, cards_rescheduled, cards_buried, to_reschedule
 
@@ -400,6 +445,7 @@ def rebuildSourcesCacheV3(self, timespacing):
             self.cardDueReviewInNextDays[cid] = due
 
 
+SchedulerV3.get_queued_cards = get_queued_cardsV3
 SchedulerV3.get_queued_cards_internal = get_queued_cards_internalV3
 SchedulerV3.bury_all_siblings_queued_cards = bury_all_siblings_queued_cardsV3
 SchedulerV3.tryGet = tryGetV3
