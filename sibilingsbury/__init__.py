@@ -88,7 +88,7 @@ from anki.cards import Card
 
 
 def debug(*args, **kwargs):
-    print(*args, **kwargs)
+    # print(*args, **kwargs)
     pass
 
 from anki.scheduler.v3 import Scheduler as SchedulerV3
@@ -147,15 +147,17 @@ def bury_all_siblings_queued_cards(self) -> None:
 
         if no_new_cards:
             buryAllSiblingsQueuedCards.setText("Reschedule all siblings cards (already run)")
-            buryAllSiblingsQueuedCards.setDisabled(True)
-            mesage = f"Rescheduled {total_cards_rescheduled} cards, and buried {total_cards_buried} cards, remaining {card_fetch_index} cards.\n" \
-                "Run this only once in a day, otherwise it going to reschedule actual good cards."
+            mesage = f"Rescheduled {total_cards_rescheduled} cards, and buried {total_cards_buried} cards, remaining {card_fetch_index} cards."
             print(mesage)
             show_warning(mesage)
             break
 
-    for card_id, days_range in cards_to_reschedule:
-        self.set_due_date([card_id], days_range)
+    # Cannot reschedule just in 7 days because it will mess up with ordering
+    # It is required to to some smart calculation to scheduled them in 20 or 100 days
+    # accordingly, but still not enough because the current card may still being studied in 20 or 100 days
+    # therefore should not be possible to reschedule them never.
+    # for card_id, days_range in cards_to_reschedule:
+    #     self.set_due_date([card_id], days_range)
 
 def get_queued_cards_internal(
     self,
