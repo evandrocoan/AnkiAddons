@@ -37,13 +37,13 @@ from anki import hooks
 
 import functools
 import time
+import datetime
+import timeit
 
-import functools
+datetime_now = datetime.datetime.now
+
 import random
-import time
-from datetime import datetime, timedelta
 from heapq import *
-from typing import Any, Callable, cast
 
 import anki  # pylint: disable=unused-import
 import anki.collection
@@ -56,11 +56,9 @@ from anki.lang import FormatTimeSpan
 from anki.scheduler.legacy import SchedulerBaseWithLegacy
 from anki.utils import ids2str, int_time
 
-from datetime import datetime, timedelta
 from itertools import zip_longest
 from anki.utils import strip_html
 
-from anki.decks import DeckConfigDict, DeckDict, DeckId
 from typing import Any, Callable, cast
 
 from anki.utils import stripHTML
@@ -84,14 +82,14 @@ from aqt.qt import (
     qconnect,
 )
 
-from anki.cards import Card
-
 
 def debug(*args, **kwargs):
     # print(*args, **kwargs)
     pass
 
 from anki.scheduler.v3 import Scheduler as SchedulerV3
+
+bury_all_siblings_cards = "Bury all siblings cards"
 
 
 def get_queued_cards(
@@ -101,7 +99,6 @@ def get_queued_cards(
     intraday_learning_only: bool = False,
 ) -> QueuedCards:
     "Returns zero or more pending cards, and the remaining counts. Idempotent."
-    card_fetch_index=0
 
     while True:
         try:
@@ -109,7 +106,7 @@ def get_queued_cards(
                 fetch_limit=fetch_limit,
                 intraday_learning_only=intraday_learning_only,
             )
-            queued_card = queued_cards.cards[card_fetch_index]
+            queued_card = queued_cards.cards[0]
         except IndexError:
             return queued_cards
 
@@ -122,7 +119,7 @@ def get_queued_cards(
                 in card.question()
             ):
                 self.bury_cards([card.id], manual=False)
-                debug(f"{datetime.now()}     Skipping card {card.id}/{card.nid} with empty front.")
+                debug(f"{datetime_now()}     Skipping card {card.id}/{card.nid} with empty front.")
                 continue
         break
 
@@ -130,24 +127,31 @@ def get_queued_cards(
 
 def bury_all_siblings_queued_cards(self) -> None:
     card_fetch_index=0
-    total_cards_rescheduled = 0
-    total_cards_buried = 0
+    total_cards_source_buried = 0
+    total_cards_sibling_buried = 0
+    total_cards_empty_buried = 0
     cards_to_reschedule = []
+    start_time = timeit.default_timer()
 
     while True:
-        queued_cards, no_new_cards, cards_rescheduled, cards_buried, to_reschedule = self.get_queued_cards_internal(
+        queued_cards, no_new_cards, cards_source_buried, cards_sibling_buried, cards_empty_buried, to_reschedule = self.get_queued_cards_internal(
             fetch_limit=card_fetch_index+1,
             intraday_learning_only=False,
             card_fetch_index=card_fetch_index,
         )
         card_fetch_index += 1
-        total_cards_rescheduled += cards_rescheduled
-        total_cards_buried += cards_buried
+        total_cards_source_buried += cards_source_buried
+        total_cards_sibling_buried += cards_sibling_buried
+        total_cards_empty_buried += cards_empty_buried
         cards_to_reschedule.extend(to_reschedule)
 
         if no_new_cards:
-            buryAllSiblingsQueuedCards.setText("Reschedule all siblings cards (already run)")
-            mesage = f"Rescheduled {total_cards_rescheduled} cards, and buried {total_cards_buried} cards, remaining {card_fetch_index} cards."
+            end_time = timeit.default_timer()
+            elapsed = datetime.timedelta(seconds=end_time-start_time)
+            buryAllSiblingsQueuedCards.setText(f"{bury_all_siblings_cards} (already run)")
+            mesage = f"Buried {total_cards_source_buried} source, {total_cards_sibling_buried} sibling, " \
+                f"{total_cards_empty_buried} empty, remaining {card_fetch_index} cards " \
+                f"after {str(elapsed)[:-7]}."
             print(mesage)
             show_warning(mesage)
             break
@@ -166,8 +170,9 @@ def get_queued_cards_internal(
     card_fetch_index,
 ):
     "Returns zero or more pending cards, and the remaining counts. Idempotent."
-    cards_rescheduled = 0
-    cards_buried = 0
+    cards_source_buried = 0
+    cards_empty_buried = 0
+    cards_sibling_buried = 0
     to_reschedule = set()
     while True:
         try:
@@ -177,7 +182,7 @@ def get_queued_cards_internal(
             )
             queued_card = queued_cards.cards[card_fetch_index]
         except IndexError:
-            return queued_cards, True, cards_rescheduled, cards_buried, to_reschedule
+            return queued_cards, True, cards_source_buried, cards_sibling_buried, cards_empty_buried, to_reschedule
 
         card = Card(self.col)
         card._load_from_backend_card(queued_card.card)
@@ -191,14 +196,14 @@ def get_queued_cards_internal(
                 in card.question()
             ):
                 self.bury_cards([card.id], manual=False)
-                cards_buried += 1
-                debug(f"{datetime.now()}     Skipping card {card.id}/{card.nid} with empty front.")
+                cards_empty_buried += 1
+                debug(f"{datetime_now()}     Skipping card {card.id}/{card.nid} with empty front.")
                 continue
 
         note = self.noteNotes.get(card.nid)
         source_field = self.getSource(note)
         sibling_field = self.getSibling(note)
-        debug(f"{datetime.now()} getting source card {card.id}, {source_field}/{sibling_field}...")
+        debug(f"{datetime_now()} getting source card {card.id}, {source_field}/{sibling_field}...")
 
         # Only enable siblings burring if there is a source field set
         if sibling_field:
@@ -224,7 +229,7 @@ def get_queued_cards_internal(
                     # burying will bury the other siblings.
                     # but do not break if it is detected to not be the one with highest priority scheduled for today!
                     if cid in self.cardDueReviewToday:
-                        debug(f"{datetime.now()}     Skipping card {card.id}/{card.nid} "
+                        debug(f"{datetime_now()}     Skipping card {card.id}/{card.nid} "
                                 f"for the sibling {cid}, {cid_index:2} < {card_index:2}, "
                                 f"{card.template()['name']}, {source_field}/{sibling_field}.")
                         review_next_card = True
@@ -237,7 +242,7 @@ def get_queued_cards_internal(
                     and card_index < cid_index
                     and cid in self.cardDueReviewToday
                 ):
-                    debug(f"{datetime.now()}     Pushing new card first even if it has a sibling being studied these days.")
+                    debug(f"{datetime_now()}     Pushing new card first even if it has a sibling being studied these days.")
                     break
 
                 # blocks the actual card if it is detected a sibling scheduled in 7 days period.
@@ -251,7 +256,7 @@ def get_queued_cards_internal(
                         - self.cardDueReviewsInLastDays[cid]
                     )
 
-                    debug(f"{datetime.now()} Analyzing {actual_period:2}/{int(actual_period > timespacing):2}, "
+                    debug(f"{datetime_now()} Analyzing {actual_period:2}/{int(actual_period > timespacing):2}, "
                             f"card {card.id}/{card.nid} for sibling {cid} in {timespacing} days: "
                             f"{card.template()['name']}, {source_field}/{sibling_field}.")
 
@@ -262,7 +267,7 @@ def get_queued_cards_internal(
                         continue
 
                     review_next_card = True
-                    debug(f"{datetime.now()}     Skipping card because it does has a sibling being studied in these days.")
+                    debug(f"{datetime_now()}     Skipping card because it does has a sibling being studied in these days.")
                     break
 
             if review_next_card:
@@ -270,7 +275,7 @@ def get_queued_cards_internal(
                 next_available_start_date = min(max(timespacing - actual_period, 1) + 1, 8)
                 to_reschedule.add((card.id, f"{next_available_start_date}"))
                 self.bury_cards([card.id], manual=False)
-                cards_rescheduled += 1
+                cards_sibling_buried += 1
                 continue
 
         if source_field:
@@ -291,13 +296,13 @@ def get_queued_cards_internal(
                     if cid_index < card_index:
                         # if a card.queue is QUEUE_TYPE_NEW, it will never be inside self.cardDueReviewToday!
                         if cid in self.cardDueReviewToday:
-                            debug(f"{datetime.now()} Skipping new card {card.id}/{card.nid} "
+                            debug(f"{datetime_now()} Skipping new card {card.id}/{card.nid} "
                                     f"by source for the sibling pending review "
                                     f"{cid}, {card.template()['name']}, {source_field}/{sibling_field}.")
                             to_reschedule.add((card.id, "1-7"))
                             self.bury_cards([card.id], manual=False)
                             review_next_card = True
-                            cards_rescheduled += 1
+                            cards_source_buried += 1
                             break
                     else:
                         break
@@ -312,14 +317,14 @@ def get_queued_cards_internal(
                         has_new_card_buried = True
 
             if burySet:
-                debug(f"{datetime.now()} Burying siblings from card {card.id}/{card.nid} by source "
+                debug(f"{datetime_now()} Burying siblings from card {card.id}/{card.nid} by source "
                     f"{queue_type:2}, {source_field}/{sibling_field}, {burySet}.")
                 to_reschedule.update([(card_id, "1-7") for card_id in burySet])
                 self.bury_cards(burySet, manual=False)
-                cards_rescheduled += 1
+                cards_source_buried += 1
         break
 
-    return queued_cards, False, cards_rescheduled, cards_buried, to_reschedule
+    return queued_cards, False, cards_source_buried, cards_sibling_buried, cards_empty_buried, to_reschedule
 
 
 @staticmethod
@@ -404,11 +409,11 @@ def rebuildSourcesCache(self, timespacing):
                 *list_of_lists
             )
 
-        timenow = datetime.now()
-        timedaysago = timenow - timedelta(days=timespacing)
+        timenow = datetime_now()
+        timedaysago = timenow - datetime.timedelta(days=timespacing)
         timenowid = int(timenow.timestamp() * 1000)
         timedaysagoid = int(timedaysago.timestamp() * 1000)
-        creation_timestamp = datetime.fromtimestamp(
+        creation_timestamp = datetime.datetime.fromtimestamp(
             self.col.db.scalar("select crt from col")
         )
 
@@ -423,7 +428,7 @@ def rebuildSourcesCache(self, timespacing):
             f"select id, cid from revlog where "
             f"id > {timedaysagoid} and id < {timenowid}"
         ):
-            review_date = datetime.fromtimestamp(seconds / 1000)
+            review_date = datetime.datetime.fromtimestamp(seconds / 1000)
             delta = review_date - creation_timestamp
             self.cardDueReviewsInLastDays[cid] = delta.days
 
@@ -463,5 +468,5 @@ def buryAllSiblingsQueuedCardsMenu() -> None:
 
 buryAllSiblingsQueuedCards = QAction(aqt.mw)
 aqt.mw.form.menuTools.addAction(buryAllSiblingsQueuedCards)
-buryAllSiblingsQueuedCards.setText("Reschedule all siblings cards")
+buryAllSiblingsQueuedCards.setText(bury_all_siblings_cards)
 qconnect(buryAllSiblingsQueuedCards.triggered, buryAllSiblingsQueuedCardsMenu)
