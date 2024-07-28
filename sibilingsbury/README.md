@@ -4,8 +4,9 @@ Addon for scheduler V3 only.
 Depending on how many cards are scheduled for today,
 and if FSRS scheduler enabled,
 it may take several minutes to complete the cards burring.
-Anki addons are only for Desktop but not Android or Anki Web,
-But you can use desktop to run the bury command with this addon,
+Anki addons are only for Desktop,
+and not Android or Anki Web.
+But you can use the desktop Anki to run the bury command with this addon,
 and sync the buried cards with other devices or Anki Web and study there.
 
 ## How it works
@@ -36,7 +37,7 @@ On the main Anki window,
 go to the menu `Tools -> Bury all siblings cards`.
 This will bury all siblings cards.
 Now you can sync with other devices and the buried cards will be propagated,
-then you can study in other devices with does not support Anki Addons.
+then you can study in other devices which does not support Anki Addons.
 You can undo this plugin action by clicking on `Unbury` button,
 at the Anki deck review (at the bottom of the page,
 where there is the `Study Now` button).

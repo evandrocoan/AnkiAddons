@@ -133,11 +133,21 @@ def bury_all_siblings_queued_cards(self) -> None:
     cards_to_reschedule = []
     start_time = timeit.default_timer()
 
+    timespacing = 7
+    self.buildSourcesCache(timespacing)
+
     while True:
-        queued_cards, no_new_cards, cards_source_buried, cards_sibling_buried, cards_empty_buried, to_reschedule = self.get_queued_cards_internal(
+        queued_cards, \
+        no_new_cards, \
+        cards_source_buried, \
+        cards_sibling_buried, \
+        cards_empty_buried, \
+        to_reschedule \
+        = self.get_queued_cards_internal(
             fetch_limit=card_fetch_index+1,
             intraday_learning_only=False,
             card_fetch_index=card_fetch_index,
+            timespacing=timespacing,
         )
         card_fetch_index += 1
         total_cards_source_buried += cards_source_buried
@@ -168,6 +178,7 @@ def get_queued_cards_internal(
     fetch_limit,
     intraday_learning_only,
     card_fetch_index,
+    timespacing,
 ):
     "Returns zero or more pending cards, and the remaining counts. Idempotent."
     cards_source_buried = 0
@@ -182,13 +193,17 @@ def get_queued_cards_internal(
             )
             queued_card = queued_cards.cards[card_fetch_index]
         except IndexError:
-            return queued_cards, True, cards_source_buried, cards_sibling_buried, cards_empty_buried, to_reschedule
+            return (
+                queued_cards,
+                True,
+                cards_source_buried,
+                cards_sibling_buried,
+                cards_empty_buried,
+                to_reschedule,
+            )
 
         card = Card(self.col)
         card._load_from_backend_card(queued_card.card)
-
-        timespacing = 7
-        self.rebuildSourcesCache(timespacing)
 
         if self.skipEmptyCards:
             if (
@@ -324,8 +339,14 @@ def get_queued_cards_internal(
                 cards_source_buried += 1
         break
 
-    return queued_cards, False, cards_source_buried, cards_sibling_buried, cards_empty_buried, to_reschedule
-
+    return (
+        queued_cards,
+        False,
+        cards_source_buried,
+        cards_sibling_buried,
+        cards_empty_buried,
+        to_reschedule,
+    )
 
 @staticmethod
 def tryGet(field, note):
@@ -361,83 +382,81 @@ def combineListAlternating(*iterators):
         if element is not object
     ]
 
-def rebuildSourcesCache(self, timespacing):
-    # rebuilds the cache if Anki stayed open over night
-    if not hasattr(self, "cardSourceIds") or self.cardSourceIdsTime < self.today:
-        self.cardSourceIdsTime = self.today
-        self.cardSourceIds = {}
-        self.cardSiblingIds = {}
-        self.cardQueuesType = {}
+def buildSourcesCache(self, timespacing):
+    self.cardSourceIdsTime = self.today
+    self.cardSourceIds = {}
+    self.cardSiblingIds = {}
+    self.cardQueuesType = {}
 
-        self.noteNotes = {}
+    self.noteNotes = {}
 
-        self.cardDueReviewToday = set()
-        self.cardDueReviewInNextDays = {}
-        self.cardDueReviewsInLastDays = {}
+    self.cardDueReviewToday = set()
+    self.cardDueReviewInNextDays = {}
+    self.cardDueReviewsInLastDays = {}
 
-        for cid, queue in self.col.db.execute(f"select id, queue from cards"):
-            self.cardQueuesType[cid] = queue
+    for cid, queue in self.col.db.execute(f"select id, queue from cards"):
+        self.cardQueuesType[cid] = queue
 
-        for (nid,) in self.col.db.execute(f"select id from notes order by mid,id"):
-            note = self.col.get_note(nid)
-            source = self.getSource(note)
-            sibling = self.getSibling(note)
+    for (nid,) in self.col.db.execute(f"select id from notes order by mid,id"):
+        note = self.col.get_note(nid)
+        source = self.getSource(note)
+        sibling = self.getSibling(note)
 
-            if source or sibling:
-                card_ids = note.card_ids()
-                self.noteNotes[nid] = note
+        if source or sibling:
+            card_ids = note.card_ids()
+            self.noteNotes[nid] = note
 
-            if sibling:
-                if sibling in self.cardSiblingIds:
-                    self.cardSiblingIds[sibling].append(card_ids)
+        if sibling:
+            if sibling in self.cardSiblingIds:
+                self.cardSiblingIds[sibling].append(card_ids)
+            else:
+                self.cardSiblingIds[sibling] = [card_ids]
+
+        if source:
+            for cid in card_ids:
+                queue_type = self.cardQueuesType[cid]
+                if source in self.cardSourceIds:
+                    self.cardSourceIds[source].append((cid, queue_type))
                 else:
-                    self.cardSiblingIds[sibling] = [card_ids]
+                    self.cardSourceIds[source] = [(cid, queue_type)]
 
-            if source:
-                for cid in card_ids:
-                    queue_type = self.cardQueuesType[cid]
-                    if source in self.cardSourceIds:
-                        self.cardSourceIds[source].append((cid, queue_type))
-                    else:
-                        self.cardSourceIds[source] = [(cid, queue_type)]
-
-        # this would be a problem for note types with 15 or more cards each, then,
-        # intermix items from different note types to not put all cards from other notes at the bottom,
-        # this way a card of each note type is studied from each step instead of all from a single note.
-        for sibling, list_of_lists in self.cardSiblingIds.items():
-            self.cardSiblingIds[sibling] = self.combineListAlternating(
-                *list_of_lists
-            )
-
-        timenow = datetime_now()
-        timedaysago = timenow - datetime.timedelta(days=timespacing)
-        timenowid = int(timenow.timestamp() * 1000)
-        timedaysagoid = int(timedaysago.timestamp() * 1000)
-        creation_timestamp = datetime.datetime.fromtimestamp(
-            self.col.db.scalar("select crt from col")
+    # this would be a problem for note types with 15 or more cards each, then,
+    # intermix items from different note types to not put all cards from other notes at the bottom,
+    # this way a card of each note type is studied from each step instead of all from a single note.
+    for sibling, list_of_lists in self.cardSiblingIds.items():
+        self.cardSiblingIds[sibling] = self.combineListAlternating(
+            *list_of_lists
         )
 
-        for (cid,) in self.col.db.execute(
-            f"select id from cards where "
-            f"queue in ({QUEUE_TYPE_LRN},{QUEUE_TYPE_REV},{QUEUE_TYPE_DAY_LEARN_RELEARN},{QUEUE_TYPE_PREVIEW}) "
-            f"and due <= {self.today}"
-        ):
-            self.cardDueReviewToday.add(cid)
+    timenow = datetime_now()
+    timedaysago = timenow - datetime.timedelta(days=timespacing)
+    timenowid = int(timenow.timestamp() * 1000)
+    timedaysagoid = int(timedaysago.timestamp() * 1000)
+    creation_timestamp = datetime.datetime.fromtimestamp(
+        self.col.db.scalar("select crt from col")
+    )
 
-        for seconds, cid, in self.col.db.execute(
-            f"select id, cid from revlog where "
-            f"id > {timedaysagoid} and id < {timenowid}"
-        ):
-            review_date = datetime.datetime.fromtimestamp(seconds / 1000)
-            delta = review_date - creation_timestamp
-            self.cardDueReviewsInLastDays[cid] = delta.days
+    for (cid,) in self.col.db.execute(
+        f"select id from cards where "
+        f"queue in ({QUEUE_TYPE_LRN},{QUEUE_TYPE_REV},{QUEUE_TYPE_DAY_LEARN_RELEARN},{QUEUE_TYPE_PREVIEW}) "
+        f"and due <= {self.today}"
+    ):
+        self.cardDueReviewToday.add(cid)
 
-        for cid, due in self.col.db.execute(
-            f"select id, due from cards where "
-            f"queue in ({QUEUE_TYPE_LRN},{QUEUE_TYPE_REV},{QUEUE_TYPE_DAY_LEARN_RELEARN},{QUEUE_TYPE_PREVIEW}) "
-            f"and due <= {self.today + timespacing} and due >= {self.today}"
-        ):
-            self.cardDueReviewInNextDays[cid] = due
+    for seconds, cid, in self.col.db.execute(
+        f"select id, cid from revlog where "
+        f"id > {timedaysagoid} and id < {timenowid}"
+    ):
+        review_date = datetime.datetime.fromtimestamp(seconds / 1000)
+        delta = review_date - creation_timestamp
+        self.cardDueReviewsInLastDays[cid] = delta.days
+
+    for cid, due in self.col.db.execute(
+        f"select id, due from cards where "
+        f"queue in ({QUEUE_TYPE_LRN},{QUEUE_TYPE_REV},{QUEUE_TYPE_DAY_LEARN_RELEARN},{QUEUE_TYPE_PREVIEW}) "
+        f"and due <= {self.today + timespacing} and due >= {self.today}"
+    ):
+        self.cardDueReviewInNextDays[cid] = due
 
 
 SchedulerV3.get_queued_cards = get_queued_cards
@@ -447,7 +466,7 @@ SchedulerV3.tryGet = tryGet
 SchedulerV3.getSource = getSource
 SchedulerV3.getSibling = getSibling
 SchedulerV3.combineListAlternating = combineListAlternating
-SchedulerV3.rebuildSourcesCache = rebuildSourcesCache
+SchedulerV3.buildSourcesCache = buildSourcesCache
 SchedulerV3.skipEmptyCards = False
 
 
