@@ -132,8 +132,11 @@ def bury_all_siblings_queued_cards(self) -> None:
     total_cards_empty_buried = 0
     cards_to_reschedule = []
     start_time = timeit.default_timer()
-
     timespacing = 7
+
+    aqt.mw.taskman.run_on_main(
+        lambda: aqt.mw.progress.start(label="Creating source cache...")
+    )
     self.buildSourcesCache(timespacing)
 
     while True:
@@ -155,15 +158,15 @@ def bury_all_siblings_queued_cards(self) -> None:
         total_cards_empty_buried += cards_empty_buried
         cards_to_reschedule.extend(to_reschedule)
 
+        aqt.mw.taskman.run_on_main(
+            lambda: aqt.mw.progress.update(
+                label="Burying cards...",
+                max=len(self.cardDueReviewToday),
+                value=total_cards_source_buried + total_cards_sibling_buried + total_cards_empty_buried,
+            )
+        )
+
         if no_new_cards:
-            end_time = timeit.default_timer()
-            elapsed = datetime.timedelta(seconds=end_time-start_time)
-            buryAllSiblingsQueuedCards.setText(f"{bury_all_siblings_cards} (already run)")
-            mesage = f"Buried {total_cards_source_buried} source, {total_cards_sibling_buried} sibling, " \
-                f"{total_cards_empty_buried} empty, remaining {card_fetch_index - 1} cards " \
-                f"after {str(elapsed)[:-7]} minutes."
-            print(mesage)
-            show_warning(mesage)
             break
 
     # Cannot reschedule just in 7 days because it will mess up with ordering
@@ -172,6 +175,20 @@ def bury_all_siblings_queued_cards(self) -> None:
     # therefore should not be possible to reschedule them never.
     # for card_id, days_range in cards_to_reschedule:
     #     self.set_due_date([card_id], days_range)
+
+    def end():
+        end_time = timeit.default_timer()
+        elapsed = datetime.timedelta(seconds=end_time-start_time)
+        buryAllSiblingsQueuedCards.setText(f"{bury_all_siblings_cards} (already run)")
+        mesage = f"Buried {total_cards_source_buried} source, {total_cards_sibling_buried} sibling, " \
+            f"{total_cards_empty_buried} empty, remaining {card_fetch_index - 1} cards " \
+            f"after {str(elapsed)[:-7]} minutes."
+        print(mesage)
+        show_warning(mesage)
+
+    aqt.mw.taskman.run_on_main(
+        lambda: [aqt.mw.progress.finish(), end()]
+    )
 
 def get_queued_cards_internal(
     self,
@@ -483,7 +500,7 @@ toggleSkipEmptyCards.setText("Toggle skip empty cards (on)")
 qconnect(toggleSkipEmptyCards.triggered, toggleSkipEmptyCardsMenu)
 
 def buryAllSiblingsQueuedCardsMenu() -> None:
-    aqt.mw.col.sched.bury_all_siblings_queued_cards()
+    aqt.mw.taskman.run_in_background(aqt.mw.col.sched.bury_all_siblings_queued_cards)
     aqt.mw.reset()
 
 buryAllSiblingsQueuedCards = QAction(aqt.mw)
