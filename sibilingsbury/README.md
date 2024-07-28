@@ -1,13 +1,15 @@
-# Source Siblings Bury
+# Source Siblings Bury (Cousins)
 
 Addon for scheduler V3 only.
 Depending on how many cards are scheduled for today,
-and if FSRS scheduler enabled,
-it may take several minutes to complete the cards burring.
+and if FSRS scheduler is enabled,
+it may take several minutes to complete the card burring.
 Anki addons are only for Desktop,
 and not Android or Anki Web.
 But you can use the desktop Anki to run the bury command with this addon,
 and sync the buried cards with other devices or Anki Web and study there.
+
+The source code can be found at [https://github.com/evandrocoan/AnkiAddons/tree/master/sibilingsbury](https://github.com/evandrocoan/AnkiAddons/tree/master/sibilingsbury).
 
 ## How it works
 
@@ -17,16 +19,16 @@ is buried.
 
 If a card has the field `Sibling`,
 them any card which also has a `Sibling` field and is scheduled for today,
-is buried if there are any "sibling" card scheduled from today up to 7 days.
+is buried if any "sibling" cards are scheduled from today up to 7 days.
 
 Basically,
 cards with the same `Source` field are buried until the next day,
 while cards with the same `Sibling` field are buried for 7 days.
-`Source` bury is useful for cards that you just do not want to see on the same day.
-`Sibling` bury is useful for cards that you do not like to see in the same week.
+`Source` bury is helpful for cards you do not want to see on the same day.
+`Sibling` bury is helpful for cards that you do not like to see in the same week.
 
-This does not interfere with Anki builtin sibling bury features,
-it only works for cards which have a not empty `Source` or `Sibling` fields.
+This does not interfere with Anki's built-in sibling bury features;
+it only works for cards that do not empty `Source` or `Sibling` fields.
 It will consider a card "sibling" from another if both cards have a `Source` or `Sibling` field
 with the same contents.
 
@@ -35,23 +37,23 @@ with the same contents.
 No cards are buried automatically.
 On the main Anki window,
 go to the menu `Tools -> Bury all siblings cards`.
-This will bury all siblings cards.
-Now you can sync with other devices and the buried cards will be propagated,
-then you can study in other devices which does not support Anki Addons.
-You can undo this plugin action by clicking on `Unbury` button,
+This will bury all sibling's cards.
+Now you can sync with other devices, and the buried cards will be propagated,
+then, you can study other devices that do not support Anki Addons.
+You can undo this plugin action by clicking on the `Unbury` button,
 at the Anki deck review (at the bottom of the page,
 where there is the `Study Now` button).
 
 It also has the option `Tools -> Toggle skip empty cards`,
-to also bury all cards which have a empty front.
+to also bury all cards which have an empty front.
 It is useful when you leave unfinished cards with empty fronts.
-For exemple, given the following front:
+For example, given the following front:
 ```
 {{^IsThisReviewed}}
 Question...
 {{/IsThisReviewed}}
 ```
-This card will be empty less the "flag" field `IsThisReviewed` has no text on it.
+This card will be empty unless the "flag" field `IsThisReviewed`, which has no text on it.
 
 ## License
 
