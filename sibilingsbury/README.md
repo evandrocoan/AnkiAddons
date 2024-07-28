@@ -7,18 +7,18 @@ it may take several minutes to complete the card burring.
 Anki addons are only for Desktop,
 and not Android or Anki Web.
 But you can use the desktop Anki to run the bury command with this addon,
-and sync the buried cards with other devices or Anki Web and study there.
+and sync the buried cards with other devices or Anki Web to study there.
 
 The source code can be found at [https://github.com/evandrocoan/AnkiAddons/tree/master/sibilingsbury](https://github.com/evandrocoan/AnkiAddons/tree/master/sibilingsbury).
 
 ## How it works
 
 If a card has the field `Source`,
-them any card which also has a `Source` field and is scheduled for today,
+them any card which also has a `Source` field with the same contents and is scheduled for today,
 is buried.
 
 If a card has the field `Sibling`,
-them any card which also has a `Sibling` field and is scheduled for today,
+them any card which also has a `Sibling` field with the same contents and is scheduled for today,
 is buried if any "sibling" cards are scheduled from today up to 7 days.
 
 Basically,
@@ -28,7 +28,7 @@ while cards with the same `Sibling` field are buried for 7 days.
 `Sibling` bury is helpful for cards that you do not like to see in the same week.
 
 This does not interfere with Anki's built-in sibling bury features;
-it only works for cards that do not empty `Source` or `Sibling` fields.
+it only works for cards that do not have an empty `Source` or `Sibling` fields.
 It will consider a card "sibling" from another if both cards have a `Source` or `Sibling` field
 with the same contents.
 
@@ -43,6 +43,8 @@ then, you can study other devices that do not support Anki Addons.
 You can undo this plugin action by clicking on the `Unbury` button,
 at the Anki deck review (at the bottom of the page,
 where there is the `Study Now` button).
+
+![bury siblings example](./burysiblingsexample.gif)
 
 It also has the option `Tools -> Toggle skip empty cards`,
 to also bury all cards which have an empty front.
