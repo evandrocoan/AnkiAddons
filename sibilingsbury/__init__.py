@@ -160,8 +160,8 @@ def bury_all_siblings_queued_cards(self) -> None:
             elapsed = datetime.timedelta(seconds=end_time-start_time)
             buryAllSiblingsQueuedCards.setText(f"{bury_all_siblings_cards} (already run)")
             mesage = f"Buried {total_cards_source_buried} source, {total_cards_sibling_buried} sibling, " \
-                f"{total_cards_empty_buried} empty, remaining {card_fetch_index} cards " \
-                f"after {str(elapsed)[:-7]}."
+                f"{total_cards_empty_buried} empty, remaining {card_fetch_index - 1} cards " \
+                f"after {str(elapsed)[:-7]} minutes."
             print(mesage)
             show_warning(mesage)
             break
@@ -484,6 +484,7 @@ qconnect(toggleSkipEmptyCards.triggered, toggleSkipEmptyCardsMenu)
 
 def buryAllSiblingsQueuedCardsMenu() -> None:
     aqt.mw.col.sched.bury_all_siblings_queued_cards()
+    aqt.mw.reset()
 
 buryAllSiblingsQueuedCards = QAction(aqt.mw)
 aqt.mw.form.menuTools.addAction(buryAllSiblingsQueuedCards)
