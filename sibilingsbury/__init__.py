@@ -162,10 +162,11 @@ def bury_all_siblings_queued_cards(self) -> None:
             lambda: aqt.mw.progress.update(
                 label="Burying cards...",
                 max=len(self.cardDueReviewToday),
-                value=total_cards_source_buried + total_cards_sibling_buried + total_cards_empty_buried,
+                value=total_cards_source_buried + total_cards_sibling_buried + total_cards_empty_buried + card_fetch_index,
             )
         )
 
+        # print(f"total_cards_source_buried {total_cards_source_buried}, total_cards_sibling_buried {total_cards_sibling_buried}, total_cards_empty_buried {total_cards_empty_buried}, card_fetch_index {card_fetch_index},")
         if no_new_cards:
             break
 
