@@ -74,7 +74,7 @@ For example, given the following front:
 Question...
 {{/IsThisReviewed}}
 ```
-This card will be empty unless the "flag" field `IsThisReviewed`, which has no text on it.
+This card will be empty unless the "flag" field `IsThisReviewed` has no text on it.
 
 ## License
 
