@@ -28,9 +28,28 @@ while cards with the same `Sibling` field are buried for 7 days.
 `Sibling` bury is helpful for cards that you do not like to see in the same week.
 
 This does not interfere with Anki's built-in sibling bury features;
-it only works for cards that do not have an empty `Source` or `Sibling` fields.
+it only works for cards (notes) that do not have an empty `Source` or `Sibling` fields.
 It will consider a card "sibling" from another if both cards have a `Source` or `Sibling` field
 with the same contents.
+
+### Example
+
+Basically, you need to install the add-on,
+create a field called `Sibling` for each note (cards),
+and put a key like `anatomy card` on it.
+Then, in every Anki note you do not want to see in the same week,
+add the field `Sibling` with the content `anatomy card`.
+This will create a bury "group" `anatomy card`
+where every note with the `anatomy card` keyword will not show on the same week.
+You can create other groups as `human bone cards,`
+and every note on this "group" will not show up in the same week.
+
+This is a manual process as it requires you to run the command `Tools -> Bury all siblings cards`
+before starting studying,
+but after that, you can sync with Anki Web and study on other devices such as AnkiDroid.
+This bury technique,
+works for every note with the field `Sibling`;
+they do not need to be from the same note type.
 
 ## How to use
 
