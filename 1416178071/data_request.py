@@ -40,7 +40,7 @@ def send_prompt_to_openai(prompt):
         openai.api_key = config['apiKey']
         # gpt-3.5-turbo
         # gpt-4o-mini
-        response = openai.ChatCompletion.create(model="gpt-4o-mini", messages=[{"role": "user", "content": prompt}], max_tokens=2000)
+        response = openai.ChatCompletion.create(model="gpt-4o", messages=[{"role": "user", "content": prompt}], max_tokens=2000)
         print("Response from ChatGPT", response)
         return response.choices[0].message.content.strip()
 
