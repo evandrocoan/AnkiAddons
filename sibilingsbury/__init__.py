@@ -188,9 +188,9 @@ def bury_all_siblings_queued_cards(self) -> None:
         print(mesage)
         show_warning(mesage)
 
-    aqt.mw.taskman.run_on_main(
-        lambda: [aqt.mw.progress.finish(), end()]
-    )
+    aqt.mw.taskman.run_on_main( lambda: aqt.mw.progress.finish() )
+    time.sleep(1)  # avoid progress.finish() closing the show_warning() some times
+    aqt.mw.taskman.run_on_main( lambda: end() )
 
 def get_queued_cards_internal(
     self,
