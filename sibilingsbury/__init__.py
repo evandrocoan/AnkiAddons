@@ -89,7 +89,7 @@ def debug(*args, **kwargs):
 
 from anki.scheduler.v3 import Scheduler as SchedulerV3
 
-__version__ = "1.0.1"
+__version__ = "1.0.2"
 bury_all_siblings_cards = "Bury all siblings cards"
 
 
