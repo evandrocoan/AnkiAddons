@@ -138,7 +138,10 @@ def bury_all_siblings_queued_cards(self) -> None:
     aqt.mw.taskman.run_on_main(
         lambda: aqt.mw.progress.start(label="Creating source cache...")
     )
+    print(f"{datetime_now()} BUILDING CACHE")
+
     self.buildSourcesCache(timespacing)
+    print(f"{datetime_now()} BUILT CACHE")
 
     while True:
         queued_cards, \
@@ -184,7 +187,7 @@ def bury_all_siblings_queued_cards(self) -> None:
         buryAllSiblingsQueuedCards.setText(f"{bury_all_siblings_cards} (already run)")
         mesage = f"Buried {total_cards_source_buried} source, {total_cards_sibling_buried} sibling, " \
             f"{total_cards_empty_buried} empty, remaining {card_fetch_index - 1} cards " \
-            f"after {str(elapsed)[:-7]} minutes."
+            f"after {str(elapsed)[:-7]} seconds."
         print(mesage)
         show_warning(mesage)
 
@@ -212,6 +215,16 @@ def get_queued_cards_internal(
             )
             queued_card = queued_cards.cards[card_fetch_index]
         except IndexError:
+            print(f"{datetime_now()} No more new cards, fetch_limit={fetch_limit}, "
+                f"intraday_learning_only={intraday_learning_only}, "
+                f"card_fetch_index={card_fetch_index}, "
+                f"timespacing={timespacing}, "
+                f"cards_source_buried={cards_source_buried}, "
+                f"cards_empty_buried={cards_empty_buried}, "
+                f"cards_sibling_buried={cards_sibling_buried}, "
+                f"to_reschedule={to_reschedule}."
+            )
+
             return (
                 queued_cards,
                 True,
