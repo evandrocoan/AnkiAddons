@@ -101,6 +101,9 @@ def send_prompt_to_openai_image(prompt):
             revised_prompt = response_json["data"][0]["revised_prompt"]
             file_name = f"{revised_prompt[:100]}-{response_json['created']}"
 
+            invalid_chars = r'[\/:*?"<>|\n]'
+            file_name = re.sub(invalid_chars, '', file_name)
+
             # with open(media_dir / f"{file_name}.json", mode="w", encoding="utf-8") as file:
             #     json.dump(response_json, file)
 
@@ -115,7 +118,7 @@ def send_prompt_to_openai_image(prompt):
 
             # dalle 3 has request limit https://platform.openai.com/docs/guides/rate-limits/usage-tiers?context=tier-free
             # check your tier on https://platform.openai.com/settings/organization/limits
-            time.sleep(10.0)
+            # time.sleep(10.0)
             return image_info
 
         print(f"Failed to get response: {response.status_code}")
@@ -128,4 +131,4 @@ def send_prompt_to_openai_image(prompt):
         return None
 
 
-send_prompt_to_openai = send_prompt_to_openai_image
+# send_prompt_to_openai = send_prompt_to_openai_image
