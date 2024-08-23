@@ -89,8 +89,13 @@ def debug(*args, **kwargs):
 
 from anki.scheduler.v3 import Scheduler as SchedulerV3
 
-__version__ = "1.0.2"
-bury_all_siblings_cards = "Bury all siblings cards"
+config = aqt.mw.addonManager.getConfig(__name__)
+if config is None:
+    print(f"WARNING: Missing configuration file from addon {__name__}.")
+    config = {}
+
+__version__ = "1.1.0"
+timespacing = config.get("CardsBuryRange", 7)
 
 
 def get_queued_cards(
@@ -103,11 +108,30 @@ def get_queued_cards(
 
     while True:
         try:
-            queued_cards = self.col._backend.get_queued_cards(
-                fetch_limit=fetch_limit,
-                intraday_learning_only=intraday_learning_only,
-            )
+            if self.autoBurySourceCards:
+                if not hasattr(self, "cardSourceIds") or self.cardSourceIdsTime < self.today:
+                    self.buildSourcesCache(timespacing)
+
+                queued_cards, \
+                no_new_cards, \
+                cards_source_buried, \
+                cards_sibling_buried, \
+                cards_empty_buried, \
+                to_reschedule \
+                = self.get_queued_cards_internal(
+                    fetch_limit=fetch_limit,
+                    intraday_learning_only=intraday_learning_only,
+                    card_fetch_index=0,
+                    timespacing=timespacing,
+                )
+            else:
+                queued_cards = self.col._backend.get_queued_cards(
+                    fetch_limit=fetch_limit,
+                    intraday_learning_only=intraday_learning_only,
+                )
+
             queued_card = queued_cards.cards[0]
+
         except IndexError:
             return queued_cards
 
@@ -126,6 +150,7 @@ def get_queued_cards(
 
     return queued_cards
 
+
 def bury_all_siblings_queued_cards(self) -> None:
     card_fetch_index=0
     total_cards_source_buried = 0
@@ -133,15 +158,11 @@ def bury_all_siblings_queued_cards(self) -> None:
     total_cards_empty_buried = 0
     cards_to_reschedule = []
     start_time = timeit.default_timer()
-    timespacing = 7
 
     aqt.mw.taskman.run_on_main(
         lambda: aqt.mw.progress.start(label="Creating source cache...")
     )
-    print(f"{datetime_now()} BUILDING CACHE")
-
     self.buildSourcesCache(timespacing)
-    print(f"{datetime_now()} BUILT CACHE")
 
     while True:
         queued_cards, \
@@ -184,7 +205,7 @@ def bury_all_siblings_queued_cards(self) -> None:
     def end():
         end_time = timeit.default_timer()
         elapsed = datetime.timedelta(seconds=end_time-start_time)
-        buryAllSiblingsQueuedCards.setText(f"{bury_all_siblings_cards} (already run)")
+        buryAllSiblingsQueuedCards.setText(f"Bury all siblings cards (already run, {'on' if aqt.mw.col.sched.autoBurySourceCards else 'off'})")
         mesage = f"Buried {total_cards_source_buried} source, {total_cards_sibling_buried} sibling, " \
             f"{total_cards_empty_buried} empty, remaining {card_fetch_index - 1} cards " \
             f"after {str(elapsed)[:-7]} seconds."
@@ -194,6 +215,7 @@ def bury_all_siblings_queued_cards(self) -> None:
     aqt.mw.taskman.run_on_main( lambda: aqt.mw.progress.finish() )
     time.sleep(1)  # avoid progress.finish() closing the show_warning() some times
     aqt.mw.taskman.run_on_main( lambda: end() )
+
 
 def get_queued_cards_internal(
     self,
@@ -380,11 +402,13 @@ def get_queued_cards_internal(
         to_reschedule,
     )
 
+
 @staticmethod
 def tryGet(field, note):
     if field in note:
         return note[field]
     return None
+
 
 @classmethod
 def getSource(cls, note):
@@ -394,6 +418,7 @@ def getSource(cls, note):
     source = cls.tryGet("Source", note) or cls.tryGet("source", note)
     return strip_html(source) if source else None
 
+
 @classmethod
 def getSibling(cls, note):
     if note is None:
@@ -401,6 +426,7 @@ def getSibling(cls, note):
 
     source = cls.tryGet("Sibling", note) or cls.tryGet("sibling", note)
     return strip_html(source) if source else None
+
 
 @staticmethod
 def combineListAlternating(*iterators):
@@ -414,6 +440,7 @@ def combineListAlternating(*iterators):
         if element is not object
     ]
 
+
 def buildSourcesCache(self, timespacing):
     self.cardSourceIdsTime = self.today
     self.cardSourceIds = {}
@@ -425,6 +452,8 @@ def buildSourcesCache(self, timespacing):
     self.cardDueReviewToday = set()
     self.cardDueReviewInNextDays = {}
     self.cardDueReviewsInLastDays = {}
+
+    print(f"{datetime_now()} Building source cache...  timespacing={timespacing}.")
 
     for cid, queue in self.col.db.execute(f"select id, queue from cards"):
         self.cardQueuesType[cid] = queue
@@ -490,6 +519,8 @@ def buildSourcesCache(self, timespacing):
     ):
         self.cardDueReviewInNextDays[cid] = due
 
+    print(f"{datetime_now()} Built source cache.")
+
 
 SchedulerV3.get_queued_cards = get_queued_cards
 SchedulerV3.get_queued_cards_internal = get_queued_cards_internal
@@ -499,26 +530,26 @@ SchedulerV3.getSource = getSource
 SchedulerV3.getSibling = getSibling
 SchedulerV3.combineListAlternating = combineListAlternating
 SchedulerV3.buildSourcesCache = buildSourcesCache
-SchedulerV3.skipEmptyCards = False
+SchedulerV3.skipEmptyCards = config.get("AutoSkipEmptyCards", False)
+SchedulerV3.autoBurySourceCards = config.get("AutoBurySourceCards", False)
 
 
 def toggleSkipEmptyCardsMenu() -> None:
     aqt.mw.col.sched.skipEmptyCards = not aqt.mw.col.sched.skipEmptyCards
-    if aqt.mw.col.sched.skipEmptyCards:
-        toggleSkipEmptyCards.setText("Toggle skip empty cards (off)")
-    else:
-        toggleSkipEmptyCards.setText("Toggle skip empty cards (on)")
+    toggleSkipEmptyCards.setText(f"Toggle skip empty cards ({'on' if aqt.mw.col.sched.skipEmptyCards else 'off'})")
 
 toggleSkipEmptyCards = QAction(aqt.mw)
 aqt.mw.form.menuTools.addAction(toggleSkipEmptyCards)
-toggleSkipEmptyCards.setText("Toggle skip empty cards (on)")
+toggleSkipEmptyCards.setText(f"Toggle skip empty cards ({'on' if SchedulerV3.skipEmptyCards else 'off'})")
 qconnect(toggleSkipEmptyCards.triggered, toggleSkipEmptyCardsMenu)
 
+
 def buryAllSiblingsQueuedCardsMenu() -> None:
+    aqt.mw.col.sched.autoBurySourceCards = not aqt.mw.col.sched.autoBurySourceCards
     aqt.mw.taskman.run_in_background(aqt.mw.col.sched.bury_all_siblings_queued_cards)
     aqt.mw.reset()
 
 buryAllSiblingsQueuedCards = QAction(aqt.mw)
 aqt.mw.form.menuTools.addAction(buryAllSiblingsQueuedCards)
-buryAllSiblingsQueuedCards.setText(bury_all_siblings_cards)
+buryAllSiblingsQueuedCards.setText(f"Bury all siblings cards ({'on' if SchedulerV3.autoBurySourceCards else 'off'})")
 qconnect(buryAllSiblingsQueuedCards.triggered, buryAllSiblingsQueuedCardsMenu)
