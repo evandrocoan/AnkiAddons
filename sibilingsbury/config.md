@@ -1,5 +1,7 @@
 This is documentation for this add-on's configuration: https://ankiweb.net/shared/info/1916261072
 
+Please, restart Anki, after changing any settings.
+
 ```
 {
 	"CardsBuryRange": 7,
