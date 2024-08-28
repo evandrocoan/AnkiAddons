@@ -1,6 +1,6 @@
 import re
 
-from PyQt5.QtWidgets import QDialog, QVBoxLayout, QLabel, QPushButton, QTextEdit, QComboBox
+from PyQt5.QtWidgets import QDialog, QVBoxLayout, QLabel, QPushButton, QTextEdit, QComboBox, QCheckBox
 from aqt import mw
 from aqt.utils import showWarning
 
@@ -31,6 +31,9 @@ class RunPromptDialog(QDialog):
         layout.addWidget(QLabel("Target Field:"))
         layout.addWidget(self.target_field_editor)
 
+        self.enable_image_checkbox = QCheckBox("Enable Image")
+        layout.addWidget(self.enable_image_checkbox)
+
         run_button = QPushButton("Run")
         run_button.clicked.connect(self.try_to_accept)
 
@@ -40,6 +43,7 @@ class RunPromptDialog(QDialog):
     def try_to_accept(self):
         self.prompt_config["prompt"] = self.prompt_editor.toPlainText()
         self.prompt_config["targetField"] = self.target_field_editor.currentText()
+        self.prompt_config["generateImage"] = self.enable_image_checkbox.isChecked()
 
         invalid_fields = get_invalid_fields_in_prompt(self.prompt_config["prompt"], self.possible_fields)
         if invalid_fields:

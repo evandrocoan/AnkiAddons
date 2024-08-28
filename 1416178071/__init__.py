@@ -21,7 +21,7 @@ def get_common_fields(selected_nodes_ids):
         note = mw.col.getNote(nid)
         note_fields = set(note.keys())
         common_fields = common_fields.intersection(note_fields)
-    return list(common_fields)
+    return sorted(list(common_fields))
 
 def create_run_prompt_dialog_from_browser(browser, prompt_config):
     common_fields = get_common_fields(browser.selectedNotes())

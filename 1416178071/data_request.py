@@ -130,5 +130,3 @@ def send_prompt_to_openai_image(prompt):
         print(f"An error occurred while processing the note: {str(e)}", file=sys.stderr)
         return None
 
-
-# send_prompt_to_openai = send_prompt_to_openai_image
