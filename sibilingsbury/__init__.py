@@ -94,7 +94,7 @@ if config is None:
     print(f"WARNING: Missing configuration file from addon {__name__}.")
     config = {}
 
-__version__ = "1.1.0"
+__version__ = "1.1.1"
 timespacing = config.get("CardsBuryRange", 7)
 
 
@@ -416,7 +416,7 @@ def getSource(cls, note):
         return None
 
     source = cls.tryGet("Source", note) or cls.tryGet("source", note)
-    return strip_html(source) if source else None
+    return str(strip_html(source)).strip() if source else None
 
 
 @classmethod
@@ -425,7 +425,7 @@ def getSibling(cls, note):
         return None
 
     source = cls.tryGet("Sibling", note) or cls.tryGet("sibling", note)
-    return strip_html(source) if source else None
+    return str(strip_html(source)).strip() if source else None
 
 
 @staticmethod
