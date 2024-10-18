@@ -206,11 +206,11 @@ def bury_all_siblings_queued_cards(self) -> None:
         end_time = timeit.default_timer()
         elapsed = datetime.timedelta(seconds=end_time-start_time)
         buryAllSiblingsQueuedCards.setText(f"Bury all siblings cards (already run, {'on' if aqt.mw.col.sched.autoBurySourceCards else 'off'})")
-        mesage = f"Buried {total_cards_source_buried} source, {total_cards_sibling_buried} sibling, " \
+        message = f"v{__version__} Buried {total_cards_source_buried} source, {total_cards_sibling_buried} sibling, " \
             f"{total_cards_empty_buried} empty, remaining {card_fetch_index - 1} cards " \
             f"after {str(elapsed)[:-7]} seconds."
-        print(mesage)
-        show_warning(mesage)
+        print(message)
+        show_warning(message)
 
     aqt.mw.taskman.run_on_main( lambda: aqt.mw.progress.finish() )
     time.sleep(1)  # avoid progress.finish() closing the show_warning() some times
@@ -453,7 +453,7 @@ def buildSourcesCache(self, timespacing):
     self.cardDueReviewInNextDays = {}
     self.cardDueReviewsInLastDays = {}
 
-    print(f"{datetime_now()} Building source cache...  timespacing={timespacing}.")
+    print(f"{datetime_now()} v{__version__} Building source cache...  timespacing={timespacing}.")
 
     for cid, queue in self.col.db.execute(f"select id, queue from cards"):
         self.cardQueuesType[cid] = queue
